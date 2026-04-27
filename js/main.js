@@ -1,602 +1,424 @@
-/* ══════════════════════════════════════════════════════
-   PORTFOLIO — main.js
-   Loads data/portfolio.json, renders all sections,
-   and wires up all interactivity.
-══════════════════════════════════════════════════════ */
-
-/* ── THEME (default: dark) ── */
+/* ─────────────────────────────────────────
+   THEME
+───────────────────────────────────────── */
 (function () {
     const html   = document.documentElement;
     const stored = localStorage.getItem('pp-theme');
-    // If no preference stored, default to dark
     html.setAttribute('data-theme', stored || 'dark');
 
     const btn = document.getElementById('theme-toggle');
+    if (!btn) return;
     btn.addEventListener('click', () => {
-        const isDark = html.getAttribute('data-theme') === 'dark';
-        const next   = isDark ? 'light' : 'dark';
+        const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
         html.setAttribute('data-theme', next);
         localStorage.setItem('pp-theme', next);
-        const w = document.getElementById('whiskers');
-        w.classList.add('peeked');
-        showBubble('whiskers-bubble', isDark ? '☀️ Good morning!' : '🌙 Night shift!', 2200);
-        setTimeout(() => w.classList.remove('peeked'), 3000);
     });
 })();
 
-/* ══════════════════════════════════════
-   SHARED BUBBLE HELPER
-══════════════════════════════════════ */
-const _bubbleTimers = {};
-function showBubble(id, text, duration = 2500) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.textContent = text;
-    el.classList.remove('hidden');
-    clearTimeout(_bubbleTimers[id]);
-    _bubbleTimers[id] = setTimeout(() => el.classList.add('hidden'), duration);
+/* ─────────────────────────────────────────
+   MOBILE NAV
+───────────────────────────────────────── */
+(function () {
+    const hamburger = document.getElementById('hamburger');
+    const navLinks  = document.getElementById('nav-links');
+    if (!hamburger || !navLinks) return;
+
+    hamburger.addEventListener('click', () => navLinks.classList.toggle('open'));
+    navLinks.querySelectorAll('a').forEach(a => {
+        a.addEventListener('click', () => navLinks.classList.remove('open'));
+    });
+})();
+
+/* ─────────────────────────────────────────
+   SCROLL PROGRESS BAR
+───────────────────────────────────────── */
+(function () {
+    const bar = document.getElementById('progress-bar');
+    if (!bar) return;
+    function update() {
+        const scrolled = window.scrollY;
+        const total    = document.documentElement.scrollHeight - window.innerHeight;
+        bar.style.width = total > 0 ? (scrolled / total * 100) + '%' : '0%';
+    }
+    window.addEventListener('scroll', update, { passive: true });
+})();
+
+/* ─────────────────────────────────────────
+   CUSTOM CURSOR
+───────────────────────────────────────── */
+function initCursor() {
+    if (window.matchMedia('(pointer: coarse)').matches) return;
+
+    const cursor = document.getElementById('cursor');
+    if (!cursor) return;
+
+    let mx = -200, my = -200;
+    let cx = -200, cy = -200;
+
+    document.addEventListener('mousemove', e => {
+        mx = e.clientX;
+        my = e.clientY;
+        cursor.classList.add('visible');
+    });
+
+    document.addEventListener('mousedown', () => cursor.classList.add('clicking'));
+    document.addEventListener('mouseup',   () => cursor.classList.remove('clicking'));
+    document.addEventListener('mouseleave', () => cursor.classList.remove('visible'));
+    document.addEventListener('mouseenter', () => cursor.classList.add('visible'));
+
+    function loop() {
+        cx += (mx - cx) * .13;
+        cy += (my - cy) * .13;
+        cursor.style.transform = `translate(${cx}px, ${cy}px) translate(-50%, -50%)`;
+        requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+
+    function bindHoverables() {
+        document.querySelectorAll(
+            'a, button, .timeline-stop, .edu-card, .skill-tag, .photo-item, .badge, .bento-card'
+        ).forEach(el => {
+            el.addEventListener('mouseenter', () => cursor.classList.add('hovering'));
+            el.addEventListener('mouseleave', () => cursor.classList.remove('hovering'));
+        });
+    }
+    bindHoverables();
+    return bindHoverables;
 }
 
-/* ══════════════════════════════════════
-   DATA LOADING + RENDERING
-══════════════════════════════════════ */
+/* ─────────────────────────────────────────
+   MAGNETIC BUTTONS
+───────────────────────────────────────── */
+function initMagneticButtons() {
+    if (window.matchMedia('(pointer: coarse)').matches) return;
+
+    document.querySelectorAll('.btn').forEach(btn => {
+        const FAST = 'transform .08s linear, opacity .2s ease, box-shadow .2s ease';
+        const SLOW = 'transform .55s cubic-bezier(.25,1,.5,1), opacity .2s ease, box-shadow .2s ease';
+
+        btn.addEventListener('mouseenter', () => {
+            btn.style.transition = FAST;
+        });
+        btn.addEventListener('mousemove', e => {
+            const rect = btn.getBoundingClientRect();
+            const x    = (e.clientX - (rect.left + rect.width  * .5)) * .22;
+            const y    = (e.clientY - (rect.top  + rect.height * .5)) * .22;
+            btn.style.transform = `translate(${x}px, ${y}px)`;
+        });
+        btn.addEventListener('mouseleave', () => {
+            btn.style.transition = SLOW;
+            btn.style.transform  = '';
+            setTimeout(() => { btn.style.transition = ''; }, 560);
+        });
+    });
+}
+
+/* ─────────────────────────────────────────
+   3D CARD TILT
+───────────────────────────────────────── */
+function init3DTilt() {
+    if (window.matchMedia('(pointer: coarse)').matches) return;
+
+    const FAST = 'border-color .2s ease, box-shadow .3s ease, background .2s ease, transform .06s linear';
+    const SLOW = 'border-color .2s ease, box-shadow .3s ease, background .2s ease, transform .6s cubic-bezier(.25,1,.5,1)';
+
+    document.querySelectorAll('.edu-card').forEach(card => {
+        let raf;
+
+        card.addEventListener('mouseenter', () => {
+            card.style.transition = FAST;
+        });
+
+        card.addEventListener('mousemove', e => {
+            cancelAnimationFrame(raf);
+            raf = requestAnimationFrame(() => {
+                const rect   = card.getBoundingClientRect();
+                const xRatio = (e.clientX - rect.left)  / rect.width  - .5;
+                const yRatio = (e.clientY - rect.top)   / rect.height - .5;
+                const tiltX  = -yRatio * 5;
+                const tiltY  =  xRatio * 5;
+                card.style.transform = `perspective(900px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) scale(1.012)`;
+            });
+        });
+
+        card.addEventListener('mouseleave', () => {
+            cancelAnimationFrame(raf);
+            card.style.transition = SLOW;
+            card.style.transform  = '';
+            setTimeout(() => { card.style.transition = ''; }, 620);
+        });
+    });
+}
+
+/* ─────────────────────────────────────────
+   PHOTO TILT (lighter version)
+───────────────────────────────────────── */
+function initPhotoTilt() {
+    if (window.matchMedia('(pointer: coarse)').matches) return;
+
+    document.querySelectorAll('.photo-item').forEach(item => {
+        let raf;
+
+        item.addEventListener('mousemove', e => {
+            cancelAnimationFrame(raf);
+            raf = requestAnimationFrame(() => {
+                const rect   = item.getBoundingClientRect();
+                const xRatio = (e.clientX - rect.left)  / rect.width  - .5;
+                const yRatio = (e.clientY - rect.top)   / rect.height - .5;
+                item.style.transform = `perspective(700px) rotateX(${-yRatio * 4}deg) rotateY(${xRatio * 4}deg) translateY(-4px) scale(1.02)`;
+                item.style.transition = 'box-shadow .3s ease, transform .08s linear';
+            });
+        });
+
+        item.addEventListener('mouseleave', () => {
+            cancelAnimationFrame(raf);
+            item.style.transition = 'box-shadow .35s ease, transform .55s cubic-bezier(.25,1,.5,1)';
+            item.style.transform  = '';
+            setTimeout(() => { item.style.transition = ''; }, 560);
+        });
+    });
+}
+
+/* ─────────────────────────────────────────
+   ACTIVE NAV HIGHLIGHT
+───────────────────────────────────────── */
+function initActiveNav() {
+    const sections = document.querySelectorAll('main section[id]');
+    const links    = document.querySelectorAll('.nav-links a');
+    if (!sections.length || !links.length) return;
+
+    const io = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+            if (!e.isIntersecting) return;
+            links.forEach(a => a.classList.remove('active'));
+            const active = document.querySelector(`.nav-links a[href="#${e.target.id}"]`);
+            if (active) active.classList.add('active');
+        });
+    }, { threshold: 0, rootMargin: '-40% 0px -55% 0px' });
+
+    sections.forEach(s => io.observe(s));
+}
+
+/* ─────────────────────────────────────────
+   SCROLL REVEAL
+───────────────────────────────────────── */
+function initScrollReveal() {
+    const headIO = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+            if (e.isIntersecting) {
+                e.target.classList.add('revealed');
+                headIO.unobserve(e.target);
+            }
+        });
+    }, { threshold: .2 });
+
+    document.querySelectorAll('.section-head').forEach(el => headIO.observe(el));
+
+    const fadeIO = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+            if (e.isIntersecting) {
+                e.target.classList.add('visible');
+                fadeIO.unobserve(e.target);
+            }
+        });
+    }, { threshold: .08, rootMargin: '0px 0px -24px 0px' });
+
+    document.querySelectorAll('.fade-up, .skill-pop').forEach(el => {
+        const siblings = Array.from(el.parentElement.querySelectorAll('.fade-up, .skill-pop'));
+        const idx      = siblings.indexOf(el);
+        const isSkill  = el.classList.contains('skill-pop');
+        el.style.transitionDelay = `${Math.min(idx * (isSkill ? 32 : 55), isSkill ? 360 : 280)}ms`;
+        fadeIO.observe(el);
+    });
+}
+
+/* ─────────────────────────────────────────
+   DATA + RENDER
+───────────────────────────────────────── */
 async function loadPortfolio() {
     try {
         const res  = await fetch('./data/portfolio.json');
         const data = await res.json();
         renderPersonal(data.personal);
-        renderStickers(data.stickers);
+        renderBadges(data.stickers);
         renderExperience(data.experience);
         renderEducation(data.education);
         renderSkills(data.skills);
         renderPhotos(data.photos);
-        // Wire up interactions that depend on rendered DOM
-        initExperienceInteractions();
-        initEducationInteractions();
-        initSkillsInteractions();
-        initCursorBuddy();
+
+        initScrollReveal();
+        initActiveNav();
+        init3DTilt();
+        initPhotoTilt();
+
+        if (window.__rebindCursor) window.__rebindCursor();
+
     } catch (err) {
-        console.error('Failed to load portfolio data:', err);
+        console.error('Portfolio load error:', err);
     }
 }
 
 function renderPersonal(p) {
-    // Subtitle
-    document.getElementById('hero-subtitle').textContent = p.subtitle;
+    const sub = document.getElementById('hero-subtitle');
+    if (sub) sub.textContent = p.subtitle.replace(/✦/g, '·').trim();
 
-    // Name
-    document.getElementById('hero-name').textContent = p.name;
+    const name = document.getElementById('hero-name');
+    if (name) name.textContent = p.name;
 
-    // Contact pills
-    document.getElementById('contact-info').innerHTML = `
-        <span>📍 ${p.location}</span>
-        <a href="mailto:${p.email}">✉️ ${p.email}</a>
-        <span>📱 ${p.phone}</span>
-        <a href="${p.linkedinUrl}" target="_blank" rel="noopener">🔗 ${p.linkedin}</a>
-    `;
+    const bio = document.getElementById('hero-bio');
+    if (bio) bio.textContent = p.summary;
 
-    // Summary + highlights
-    const summaryEl = document.getElementById('hero-summary');
-    const bullets   = p.highlights.map(h => `<li>${h}</li>`).join('');
-    summaryEl.innerHTML = `
-        <strong class="summary-lead">${p.summary}</strong>
-        <ul class="summary-bullets">${bullets}</ul>
-    `;
-
-    // Hero portrait
-    const img = document.getElementById('hero-portrait');
-    if (img) {
-        img.src = p.heroImage;
-        img.alt = p.name;
+    const contact = document.getElementById('contact-info');
+    if (contact) {
+        contact.innerHTML = `
+            <span>${p.location}</span>
+            <a href="mailto:${p.email}">${p.email}</a>
+            <a href="${p.linkedinUrl}" target="_blank" rel="noopener">${p.linkedin}</a>
+        `;
     }
 
-    // Resume links (nav + hero button)
-    document.querySelectorAll('.resume-link').forEach(el => {
-        el.href = p.resume;
+    const img = document.getElementById('hero-portrait');
+    if (img) { img.src = p.heroImage; img.alt = p.name; }
+
+    document.querySelectorAll('.resume-link').forEach(el => { el.href = p.resume; });
+}
+
+function renderBadges(stickers) {
+    const el = document.getElementById('sticker-row');
+    if (!el) return;
+    el.innerHTML = stickers.map(s => `<span class="badge">${s.text}</span>`).join('');
+}
+
+/* ─────────────────────────────────────────
+   HORIZONTAL TIMELINE
+───────────────────────────────────────── */
+function renderExperience(jobs) {
+    const trackEl  = document.getElementById('experience-cards');
+    const detailEl = document.getElementById('timeline-detail');
+    if (!trackEl || !detailEl) return;
+
+    trackEl.innerHTML = jobs.map((job, i) => `
+        <div class="timeline-stop fade-up${i === 0 ? ' active' : ''}" data-idx="${i}" role="button" tabindex="0">
+            <div class="timeline-dot"></div>
+            <div class="ts-dates">${job.dates}</div>
+            <div class="ts-title">${job.title}</div>
+            <div class="ts-company">${job.company}</div>
+            <div class="ts-location">${job.location}</div>
+        </div>
+    `).join('');
+
+    const stops = trackEl.querySelectorAll('.timeline-stop');
+
+    function updateProgress(idx) {
+        const stop = stops[idx];
+        if (!stop) return;
+        const px = stop.offsetLeft + stop.offsetWidth / 2;
+        trackEl.style.setProperty('--tl-progress', px + 'px');
+    }
+
+    function buildDetail(job) {
+        let body = '';
+        if (job.sections) {
+            body = job.sections.map(sec => `
+                <div class="td-section">
+                    <p class="td-section-heading">${sec.heading}</p>
+                    <ul>${sec.bullets.map(b => `<li>${b}</li>`).join('')}</ul>
+                </div>
+            `).join('');
+        } else if (job.bullets) {
+            body = `<ul>${job.bullets.map(b => `<li>${b}</li>`).join('')}</ul>`;
+        }
+        return `<div class="td-inner">
+            <div class="td-header">
+                <span class="td-title">${job.title}</span>
+                <span class="td-badge">${job.dates}</span>
+            </div>
+            <div class="td-company">${job.company} &mdash; ${job.location}</div>
+            <div class="td-body">${body}</div>
+        </div>`;
+    }
+
+    function selectStop(idx) {
+        stops.forEach(s => s.classList.remove('active'));
+        stops[idx].classList.add('active');
+        updateProgress(idx);
+        detailEl.classList.remove('td-visible');
+        setTimeout(() => {
+            detailEl.innerHTML = buildDetail(jobs[idx]);
+            void detailEl.offsetHeight;
+            detailEl.classList.add('td-visible');
+        }, 200);
+    }
+
+    stops.forEach((stop, i) => {
+        stop.addEventListener('click', () => selectStop(i));
+        stop.addEventListener('keydown', e => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectStop(i); }
+        });
+    });
+
+    detailEl.innerHTML = buildDetail(jobs[0]);
+    requestAnimationFrame(() => {
+        updateProgress(0);
+        detailEl.classList.add('td-visible');
+    });
+
+    /* Drag-to-scroll */
+    let isDragging = false, dragStartX, dragScrollLeft;
+    trackEl.addEventListener('mousedown', e => {
+        isDragging     = true;
+        dragStartX     = e.pageX - trackEl.offsetLeft;
+        dragScrollLeft = trackEl.scrollLeft;
+        trackEl.classList.add('grabbing');
+    });
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+        trackEl.classList.remove('grabbing');
+    });
+    trackEl.addEventListener('mousemove', e => {
+        if (!isDragging) return;
+        e.preventDefault();
+        const x = e.pageX - trackEl.offsetLeft;
+        trackEl.scrollLeft = dragScrollLeft - (x - dragStartX);
+    });
+    trackEl.addEventListener('mouseleave', () => {
+        isDragging = false;
+        trackEl.classList.remove('grabbing');
     });
 }
 
-function renderStickers(stickers) {
-    const container = document.getElementById('sticker-row');
-    if (!container) return;
-    container.innerHTML = stickers.map(s => `
-        <div class="sticker" style="transform:rotate(${s.rot}deg);box-shadow:2px 3px 0 var(--${s.color});">${s.text}</div>
-    `).join('');
-}
-
-function renderExperience(jobs) {
-    const container = document.getElementById('experience-cards');
-    if (!container) return;
-    container.innerHTML = jobs.map(job => {
-        const openClass    = job.open ? 'open' : '';
-        const ariaExpanded = job.open ? 'true' : 'false';
-
-        let detailsHtml = '';
-        if (job.sections) {
-            detailsHtml = job.sections.map(sec => `
-                <h4 class="job-section-heading">${sec.heading}</h4>
-                <ul>${sec.bullets.map(b => `<li>${b}</li>`).join('')}</ul>
-            `).join('');
-        } else if (job.bullets) {
-            detailsHtml = `<ul>${job.bullets.map(b => `<li>${b}</li>`).join('')}</ul>`;
-        }
-
-        const tenureBadge = job.tenure ? ` <span style="font-size:.8rem;color:var(--muted);">(${job.tenure})</span>` : '';
-
-        return `
-        <div class="experience-card ${openClass}">
-            <div class="job-header" onclick="toggleCard(this)" aria-expanded="${ariaExpanded}">
-                <div class="job-title-group">
-                    <h3 class="job-title">${job.title}</h3>
-                    <span class="job-company">${job.company} — ${job.location}${tenureBadge}</span>
-                </div>
-                <div class="job-date">${job.dates}</div>
-                <span class="toggle-icon" aria-hidden="true">▼</span>
-            </div>
-            <div class="job-details">${detailsHtml}</div>
-        </div>`;
-    }).join('');
-}
-
-function renderEducation(education) {
-    const container = document.getElementById('education-cards');
-    if (!container) return;
-    container.innerHTML = education.map(edu => `
-        <div class="edu-card">
-            <div class="edu-details">
-                <h3>${edu.degree}</h3>
-                <span>${edu.school}</span>
-            </div>
-            <div class="edu-year">${edu.years}</div>
+function renderEducation(edu) {
+    const el = document.getElementById('education-cards');
+    if (!el) return;
+    el.innerHTML = edu.map(e => `
+        <div class="edu-card fade-up">
+            <div class="edu-degree">${e.degree}</div>
+            <div class="edu-school">${e.school}</div>
+            <span class="edu-year">${e.years}</span>
         </div>
     `).join('');
 }
 
 function renderSkills(skills) {
-    const container = document.getElementById('skills-container');
-    if (!container) return;
-    container.innerHTML = skills.map(s => `<div class="skill-tag">${s}</div>`).join('');
+    const el = document.getElementById('skills-container');
+    if (!el) return;
+    el.innerHTML = skills.map(s => `<span class="skill-tag skill-pop">${s}</span>`).join('');
 }
 
 function renderPhotos(photos) {
-    const container = document.getElementById('photo-grid');
-    if (!container) return;
-    container.innerHTML = photos.map(photo => `
-        <div class="photo-item">
-            <img src="${photo.src}" alt="${photo.alt}" loading="lazy"/>
+    const el = document.getElementById('photo-grid');
+    if (!el) return;
+    el.innerHTML = photos.map(p => `
+        <div class="photo-item fade-up">
+            <img src="${p.src}" alt="${p.alt}" loading="lazy"/>
         </div>
     `).join('');
 }
 
-/* ══════════════════════════════════════
-   ACCORDION
-══════════════════════════════════════ */
-function toggleCard(el) {
-    const card = el.closest('.experience-card');
-    const open = card.classList.contains('open');
-    card.classList.toggle('open');
-    el.setAttribute('aria-expanded', String(!open));
-}
-
-/* ══════════════════════════════════════
-   CSS PARTICLES — generated once, animated by CSS
-══════════════════════════════════════ */
-(function () {
-    const wrap   = document.getElementById('particles-wrap');
-    const COLORS = ['#d96c6c', '#6c9bd9', '#e6c86e', '#7ab585', '#aaaaaa'];
-    const shapes = ['scrap', 'dot', 'tape', 'star', 'cross'];
-    const count  = Math.min(22, Math.floor(window.innerWidth * window.innerHeight / 20000));
-    for (let i = 0; i < count; i++) {
-        const el    = document.createElement('div');
-        const shape = shapes[i % shapes.length];
-        const col   = COLORS[Math.floor(Math.random() * COLORS.length)];
-        const size  = 9 + Math.random() * 17;
-        const dur   = 14 + Math.random() * 18;
-        el.className  = `p ${shape}`;
-        el.style.cssText = `
-            --h:${size}px;left:${Math.random() * 96}vw;
-            width:${shape === 'tape' ? size * 1.9 : size}px;height:${size}px;
-            background:${col};opacity:${0.16 + Math.random() * 0.28};
-            animation-duration:${dur}s;animation-delay:${-(Math.random() * dur)}s;`;
-        wrap.appendChild(el);
-    }
-})();
-
-/* ══════════════════════════════════════
-   SCROLL REVEAL + SHEET ANIMATE-IN
-══════════════════════════════════════ */
-(function () {
-    const sheets = document.querySelectorAll('.paper-sheet');
-    const io = new IntersectionObserver(entries => {
-        entries.forEach(e => {
-            if (e.isIntersecting) { e.target.classList.add('animate-in'); io.unobserve(e.target); }
-        });
-    }, { threshold: .07 });
-    sheets.forEach((s, i) => { s.style.animationDelay = (i * .16) + 's'; io.observe(s); });
-
-    const rio = new IntersectionObserver(entries => {
-        entries.forEach(e => {
-            if (e.isIntersecting) { e.target.classList.add('in-view'); rio.unobserve(e.target); }
-        });
-    }, { threshold: .07 });
-    document.querySelectorAll('.reveal').forEach(el => rio.observe(el));
-})();
-
-/* ══════════════════════════════════════
-   MASCOT — eye tracking + interactions
-══════════════════════════════════════ */
-(function () {
-    const mascot    = document.getElementById('mascot');
-    const heroName  = document.getElementById('hero-name');
-    const mascotCol = document.getElementById('mascot-col');
-    const eyeL      = document.getElementById('eyeball-l');
-    const eyeR      = document.getElementById('eyeball-r');
-    const MSGS = [
-        'Hey there! 👋', "Let's build something!", 'Coffee === code ☕',
-        'git push origin main', 'I ❤️ TypeScript', 'Ship it! 🚀',
-        'Stay curious 🔍', 'npm install happiness'
-    ];
-    let msgIdx = 1;
-
-    document.addEventListener('mousemove', e => {
-        if (!mascot || !eyeL || !eyeR) return;
-        const rect = mascot.getBoundingClientRect();
-        if (!rect.width) return;
-        const cx = rect.left + rect.width  * 0.5;
-        const cy = rect.top  + rect.height * 0.36;
-        const a  = Math.atan2(e.clientY - cy, e.clientX - cx);
-        const d  = 2.5;
-        eyeL.style.transform = `translate(${Math.cos(a) * d}px,${Math.sin(a) * d}px)`;
-        eyeR.style.transform = `translate(${Math.cos(a) * d}px,${Math.sin(a) * d}px)`;
-    });
-
-    if (heroName) {
-        heroName.addEventListener('mouseenter', () => {
-            mascotCol.classList.add('hero-waving');
-            showBubble('mascot-bubble', MSGS[0]);
-        });
-        heroName.addEventListener('mouseleave', () => mascotCol.classList.remove('hero-waving'));
-    }
-
-    if (mascot) {
-        mascot.addEventListener('click', () => {
-            mascotCol.classList.add('hero-waving');
-            showBubble('mascot-bubble', MSGS[msgIdx % MSGS.length]);
-            msgIdx++;
-            setTimeout(() => mascotCol.classList.remove('hero-waving'), 1800);
-        });
-    }
-
-    // Sticker hover — re-runs whenever stickers are re-rendered
-    function bindStickers() {
-        document.querySelectorAll('.sticker').forEach(s => {
-            s.addEventListener('mouseenter', () =>
-                showBubble('mascot-bubble', `${s.textContent.trim()} 🎯`));
-        });
-    }
-    // Call once now, and again after data load
-    bindStickers();
-    document.addEventListener('portfolio-rendered', bindStickers);
-})();
-
-/* ══════════════════════════════════════
-   WHISKERS THE CAT
-══════════════════════════════════════ */
-(function () {
-    const w = document.getElementById('whiskers');
-    if (!w) return;
-    const CAT_MSGS = [
-        'Meow~ 😺', 'Pet me!', 'I see you coding...', '...',
-        'Still here 👀', '*purrs*', 'Night owl? 🌙', 'Feed me bugs pls'
-    ];
-    let catIdx = 0;
-    let peekTimer;
-
-    w.addEventListener('click', () => {
-        w.classList.add('peeked');
-        showBubble('whiskers-bubble', CAT_MSGS[catIdx % CAT_MSGS.length]);
-        catIdx++;
-        clearTimeout(peekTimer);
-        peekTimer = setTimeout(() => w.classList.remove('peeked'), 3500);
-    });
-    w.addEventListener('mouseenter', () => {
-        w.classList.add('peeked');
-        showBubble('whiskers-bubble', CAT_MSGS[catIdx % CAT_MSGS.length]);
-    });
-    w.addEventListener('mouseleave', () => {
-        clearTimeout(peekTimer);
-        peekTimer = setTimeout(() => w.classList.remove('peeked'), 1200);
-    });
-
-    function randomPeek() {
-        w.classList.add('peeked');
-        showBubble('whiskers-bubble', CAT_MSGS[catIdx % CAT_MSGS.length]);
-        catIdx++;
-        setTimeout(() => w.classList.remove('peeked'), 2800);
-        setTimeout(randomPeek, 18000 + Math.random() * 22000);
-    }
-    setTimeout(randomPeek, 9000 + Math.random() * 8000);
-})();
-
-/* ══════════════════════════════════════
-   CARL THE INSPECTOR — wired after render
-══════════════════════════════════════ */
-function initExperienceInteractions() {
-    const carl      = document.getElementById('carl');
-    const CARL_MSGS = [
-        'Checking records...', 'Excellent! ✅', 'Hmm, noted 📝',
-        'Impressive! 🏆', '*scribbles*', 'Outstanding!', 'On it! 📋', 'Approved! ✔️'
-    ];
-    let carlIdx = 0;
-
-    document.querySelectorAll('.job-header').forEach(h => {
-        h.addEventListener('click', () => {
-            const card = h.closest('.experience-card');
-            if (!card.classList.contains('open')) {
-                carl.classList.add('carl-excited');
-                showBubble('carl-bubble', CARL_MSGS[carlIdx % CARL_MSGS.length]);
-                carlIdx++;
-                setTimeout(() => carl.classList.remove('carl-excited'), 1800);
-            }
-            setTimeout(() => {
-                const anyOpen = document.querySelector('.experience-card.open');
-                carl.classList.toggle('carl-sleeping', !anyOpen);
-                if (!anyOpen) showBubble('carl-bubble', '😴 zZz...');
-            }, 500);
-        });
-    });
-
-    if (carl) {
-        carl.addEventListener('click', () => {
-            carl.classList.remove('carl-sleeping');
-            carl.classList.add('carl-excited');
-            showBubble('carl-bubble', CARL_MSGS[carlIdx % CARL_MSGS.length]);
-            carlIdx++;
-            setTimeout(() => carl.classList.remove('carl-excited'), 1800);
-        });
-    }
-}
-
-/* ══════════════════════════════════════
-   PROF THE GRADUATE — wired after render
-══════════════════════════════════════ */
-function initEducationInteractions() {
-    const prof      = document.getElementById('prof');
-    const confZone  = document.getElementById('confetti-zone');
-    const PROF_MSGS = [
-        'Knowledge is power! 📚', 'Study hard! 🎓',
-        'Graduated with honors ✨', 'The pursuit of wisdom...',
-        'Never stop learning!', 'Magna cum laude 🏅'
-    ];
-    let profIdx  = 0;
-    let profShown = false;
-
-    function launchConfetti() {
-        const colors = ['#d96c6c', '#6c9bd9', '#e6c86e', '#7ab585', '#b794f4', '#fbb6ce'];
-        for (let i = 0; i < 30; i++) {
-            const c    = document.createElement('div');
-            const size = 5 + Math.random() * 7;
-            c.style.cssText = `
-                position:absolute;width:${size}px;height:${size}px;
-                background:${colors[Math.floor(Math.random() * colors.length)]};
-                left:${10 + Math.random() * 80}%;top:0;
-                border-radius:${Math.random() > 0.5 ? '50%' : '2px'};
-                pointer-events:none;z-index:50;
-                animation:confetti-fall ${0.9 + Math.random() * .9}s ${Math.random() * .6}s ease-in forwards;
-                transform:rotate(${Math.random() * 360}deg);`;
-            confZone.appendChild(c);
-            c.addEventListener('animationend', () => c.remove());
-        }
-    }
-
-    const profOb = new IntersectionObserver(entries => {
-        entries.forEach(e => {
-            if (e.isIntersecting && !profShown) {
-                profShown = true;
-                setTimeout(() => {
-                    prof.classList.add('prof-visible');
-                    showBubble('prof-bubble', PROF_MSGS[0]);
-                    launchConfetti();
-                }, 400);
-                profOb.unobserve(e.target);
-            }
-        });
-    }, { threshold: .4 });
-
-    const eduSection = document.getElementById('education');
-    if (eduSection && prof) profOb.observe(eduSection);
-
-    if (prof) {
-        prof.addEventListener('click', () => {
-            prof.classList.remove('prof-jump');
-            void prof.offsetWidth;
-            prof.classList.add('prof-jump');
-            launchConfetti();
-            profIdx++;
-            showBubble('prof-bubble', PROF_MSGS[profIdx % PROF_MSGS.length]);
-            setTimeout(() => prof.classList.remove('prof-jump'), 600);
-        });
-    }
-
-    document.querySelectorAll('.edu-card').forEach(card => {
-        card.addEventListener('mouseenter', () => showBubble('prof-bubble', '🎓 Great choice!'));
-    });
-}
-
-/* ══════════════════════════════════════
-   GIZMO THE ROBOT — wired after render
-══════════════════════════════════════ */
-function initSkillsInteractions() {
-    const gizmo      = document.getElementById('gizmo');
-    const GIZMO_MSGS = [
-        'Processing...⚙️', 'Skill detected! 🤖', 'Calculating... 💡',
-        'BEEP BOOP', 'Loading dependencies...', 'Error 404: free time',
-        'npm install skills', "git commit -m 'epic'"
-    ];
-    let gizmoIdx   = 0;
-    let gizmoTimer;
-
-    document.querySelectorAll('.skill-tag').forEach(tag => {
-        tag.addEventListener('mouseenter', () => {
-            if (gizmo) gizmo.classList.add('gizmo-active');
-            showBubble('gizmo-bubble', `📡 ${tag.textContent} detected!`);
-            clearTimeout(gizmoTimer);
-        });
-        tag.addEventListener('mouseleave', () => {
-            gizmoTimer = setTimeout(() => {
-                if (gizmo) gizmo.classList.remove('gizmo-active');
-            }, 600);
-        });
-    });
-
-    if (gizmo) {
-        gizmo.addEventListener('click', () => {
-            gizmo.classList.add('gizmo-active');
-            showBubble('gizmo-bubble', GIZMO_MSGS[gizmoIdx % GIZMO_MSGS.length]);
-            gizmoIdx++;
-            clearTimeout(gizmoTimer);
-            gizmoTimer = setTimeout(() => gizmo.classList.remove('gizmo-active'), 2500);
-        });
-
-        const skillsOb = new IntersectionObserver(entries => {
-            entries.forEach(e => {
-                if (e.isIntersecting) {
-                    gizmo.classList.add('gizmo-active');
-                    showBubble('gizmo-bubble', 'Skills database loaded! 🤖');
-                    setTimeout(() => gizmo.classList.remove('gizmo-active'), 2000);
-                    skillsOb.unobserve(e.target);
-                }
-            });
-        }, { threshold: .3 });
-        const skillsEl = document.getElementById('skills');
-        if (skillsEl) skillsOb.observe(skillsEl);
-    }
-}
-
-/* ══════════════════════════════════════
-   CURSOR BUDDY — wired after render
-══════════════════════════════════════ */
-function initCursorBuddy() {
-    const buddy = document.getElementById('cursor-buddy');
-    if (!buddy || window.matchMedia('(max-width:600px)').matches) return;
-    let mx = 0, my = 0, bx = 0, by = 0;
-    document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
-    (function loop() {
-        bx += (mx - bx) * .11;
-        by += (my - by) * .11;
-        buddy.style.left = bx + 'px';
-        buddy.style.top  = by + 'px';
-        requestAnimationFrame(loop);
-    })();
-    const interactives = document.querySelectorAll(
-        'button,a,.skill-tag,.job-header,.edu-card,#mascot,#whiskers,#prof,#carl,#gizmo,.tape,.photo-item'
-    );
-    interactives.forEach(el => {
-        el.addEventListener('mouseenter', () => buddy.classList.add('on-interactive'));
-        el.addEventListener('mouseleave', () => buddy.classList.remove('on-interactive'));
-    });
-}
-
-/* ══════════════════════════════════════
-   PAPER AIRPLANE
-══════════════════════════════════════ */
-(function () {
-    const plane = document.getElementById('plane-wrap');
-    if (!plane) return;
-    function launch() {
-        plane.style.top = (12 + Math.random() * 40) + '%';
-        plane.classList.add('flying');
-        setTimeout(() => {
-            plane.classList.remove('flying');
-            setTimeout(launch, 22000 + Math.random() * 20000);
-        }, 12200);
-    }
-    setTimeout(launch, 4000);
-})();
-
-/* ══════════════════════════════════════
-   ORIGAMI CRANE FLOCK
-══════════════════════════════════════ */
-(function () {
-    const flock = document.getElementById('bird-flock');
-    if (!flock) return;
-    function flockFly() {
-        flock.style.top = (4 + Math.random() * 18) + '%';
-        flock.classList.add('flying');
-        setTimeout(() => {
-            flock.classList.remove('flying');
-            setTimeout(flockFly, 28000 + Math.random() * 24000);
-        }, 14200);
-    }
-    setTimeout(flockFly, 12000 + Math.random() * 8000);
-})();
-
-/* ══════════════════════════════════════
-   PAPER BOAT
-══════════════════════════════════════ */
-(function () {
-    const boat = document.getElementById('boat-wrap');
-    if (!boat) return;
-    function sail() {
-        boat.classList.add('sailing');
-        setTimeout(() => {
-            boat.classList.remove('sailing');
-            setTimeout(sail, 30000 + Math.random() * 25000);
-        }, 17500);
-    }
-    setTimeout(sail, 8000 + Math.random() * 6000);
-})();
-
-/* ══════════════════════════════════════
-   ROLLING PENCIL
-══════════════════════════════════════ */
-(function () {
-    const pencil = document.getElementById('pencil-fly');
-    if (!pencil) return;
-    function roll() {
-        pencil.classList.add('rolling');
-        setTimeout(() => {
-            pencil.classList.remove('rolling');
-            setTimeout(roll, 20000 + Math.random() * 18000);
-        }, 10200);
-    }
-    setTimeout(roll, 6000 + Math.random() * 4000);
-})();
-
-/* ══════════════════════════════════════
-   BOUNCING ERASER
-══════════════════════════════════════ */
-(function () {
-    const eraser = document.getElementById('eraser-fly');
-    if (!eraser) return;
-    function bounce() {
-        eraser.classList.add('bouncing');
-        setTimeout(() => {
-            eraser.classList.remove('bouncing');
-            setTimeout(bounce, 24000 + Math.random() * 20000);
-        }, 8700);
-    }
-    setTimeout(bounce, 16000 + Math.random() * 8000);
-})();
-
-/* ══════════════════════════════════════
-   SHOOTING STAR (dark mode only)
-══════════════════════════════════════ */
-(function () {
-    const star = document.getElementById('star-shoot');
-    if (!star) return;
-    function shoot() {
-        if (document.documentElement.getAttribute('data-theme') === 'dark') {
-            star.style.top = (Math.random() * 25) + '%';
-            star.classList.add('shooting');
-            setTimeout(() => star.classList.remove('shooting'), 4200);
-        }
-        setTimeout(shoot, 12000 + Math.random() * 14000);
-    }
-    setTimeout(shoot, 5000);
-})();
-
-/* ══════════════════════════════════════
+/* ─────────────────────────────────────────
    INIT
-══════════════════════════════════════ */
+───────────────────────────────────────── */
+const rebind = initCursor();
+window.__rebindCursor = rebind;
+initMagneticButtons();
 loadPortfolio();

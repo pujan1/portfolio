@@ -1,0 +1,74 @@
+# ─────────────────────────────────────────────
+# macOS
+# ─────────────────────────────────────────────
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.LSOverride
+
+# ─────────────────────────────────────────────
+# Editors / IDEs
+# ─────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.cursor/
+
+# ─────────────────────────────────────────────
+# Logs & temp
+# ─────────────────────────────────────────────
+*.log
+*.tmp
+*.cache
+
+# ─────────────────────────────────────────────
+# Python (Blender headless scripts)
+# ─────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+
+# ─────────────────────────────────────────────
+# Blender backups / autosaves
+# ─────────────────────────────────────────────
+*.blend1
+*.blend2
+*.blend.backup
+
+# ─────────────────────────────────────────────
+# Node (in case you add tooling later)
+# ─────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# ─────────────────────────────────────────────
+# Build / progress artifacts
+# Throwaway iteration screenshots — keep _reference_*.png files,
+# they're committed deliverables.
+# ─────────────────────────────────────────────
+demo/**/_progress_*.png
+demo/**/_tmp_*
+demo/**/_wip_*
+
+# ─────────────────────────────────────────────
+# Skill / scratch staging (not part of the site)
+# ─────────────────────────────────────────────
+temp_skills/
+
+# ─────────────────────────────────────────────
+# Other OS noise
+# ─────────────────────────────────────────────
+Thumbs.db
+ehthumbs.db
+Desktop.ini

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drone Flythrough — Pujan Parikh</title>
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- importmap: lets vanilla JS use bare-module imports like `from 'three'` -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three":        "https://unpkg.com/three@0.165.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.165.0/examples/jsm/"
+        }
+    }
+    </script>
+</head>
+<body>
+
+<!-- LOADING SCREEN — covers everything until all GLBs are ready -->
+<div class="loading-overlay" id="loading-overlay">
+    <div class="loader-content">
+        <p class="loader-eyebrow">PRE-FLIGHT CHECK</p>
+        <h1 class="loader-title">Pujan Parikh</h1>
+        <div class="loader-bar"><div class="loader-bar-fill" id="loader-bar-fill"></div></div>
+        <p class="loader-status" id="loader-status">Initializing systems…</p>
+        <p class="loader-detail" id="loader-detail">0 / 8 assets loaded</p>
+    </div>
+</div>
+
+<!-- 3D canvas (fills viewport, fixed background) -->
+<canvas id="scene-canvas"></canvas>
+
+<!-- HUD overlay (drone telemetry) -->
+<div class="hud" id="hud">
+    <div class="hud-corner hud-tl">
+        <div class="hud-line"><span class="hud-rec">● REC</span> 04K · 60FPS</div>
+        <div class="hud-line"><span class="hud-label">SIG</span> ████████</div>
+    </div>
+    <div class="hud-corner hud-tr">
+        <div class="hud-line"><span class="hud-label">BAT</span> <span id="hud-bat">87</span>%</div>
+        <div class="hud-line"><span class="hud-label">ALT</span> <span id="hud-alt">000</span>m</div>
+        <div class="hud-line"><span class="hud-label">SPD</span> <span id="hud-spd">00</span>m/s</div>
+    </div>
+    <div class="hud-corner hud-bl">
+        <div class="hud-line"><span class="hud-label">GPS</span> <span id="hud-gps">37.68°N 121.77°W</span></div>
+        <div class="hud-line"><span class="hud-label">MODE</span> <span id="hud-mode">TAKEOFF</span></div>
+    </div>
+    <div class="hud-corner hud-br">
+        <div class="hud-line"><span id="hud-progress">0</span>% MISSION</div>
+    </div>
+    <!-- crosshair -->
+    <div class="hud-crosshair"></div>
+</div>
+
+<!-- Section content (appears as drone reaches each POI) -->
+<main class="content" id="content">
+
+    <section class="poi-section active" data-poi="intro">
+        <div class="poi-content">
+            <p class="eyebrow">DRONE FLIGHT // PORTFOLIO</p>
+            <h1>Pujan Parikh</h1>
+            <p class="tagline">Scroll to fly.</p>
+        </div>
+    </section>
+
+    <section class="poi-section" data-poi="about">
+        <div class="poi-content">
+            <p class="eyebrow">POI 01 // CABIN</p>
+            <h2>Work</h2>
+            <p>8+ years shipping enterprise AI-driven systems. Currently at Oracle on the OCI Integration / Process Automation platform.</p>
+            <div class="entry">
+                <h3>Member of Technical Staff · Full Stack</h3>
+                <div class="entry-meta">Oracle America · Aug 2021 – Present</div>
+            </div>
+            <div class="entry">
+                <h3>Front End Engineer</h3>
+                <div class="entry-meta">Veritas Technologies · Dec 2017 – Aug 2021</div>
+            </div>
+            <div class="entry">
+                <h3>Front End Engineering Intern</h3>
+                <div class="entry-meta">Shutterfly · Jun 2017 – Aug 2017</div>
+            </div>
+            <div class="entry">
+                <h3>Front End Engineering Intern</h3>
+                <div class="entry-meta">Digitalmain · Apr 2017 – May 2017</div>
+            </div>
+            <div class="entry">
+                <h3>Web Developer</h3>
+                <div class="entry-meta">Experian · Nov 2014 – May 2015</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="poi-section" data-poi="photography">
+        <div class="poi-content">
+            <p class="eyebrow">POI 02 // VIEWPOINT</p>
+            <h2>Photography</h2>
+            <p>National parks, mountain trails, long lenses. Mostly landscapes, occasionally street.</p>
+        </div>
+    </section>
+
+    <section class="poi-section" data-poi="music">
+        <div class="poi-content">
+            <p class="eyebrow">POI 03 // CAMPFIRE</p>
+            <h2>Music</h2>
+            <p>Acoustic guitar. Mostly fingerstyle, occasionally loud.</p>
+        </div>
+    </section>
+
+    <section class="poi-section" data-poi="games">
+        <div class="poi-content">
+            <p class="eyebrow">POI 04 // STADIUM</p>
+            <h2>Competitive Games</h2>
+            <p>Where reflexes meet pattern recognition.</p>
+        </div>
+    </section>
+
+    <section class="poi-section" data-poi="drone">
+        <div class="poi-content">
+            <p class="eyebrow">POI 05 // LIGHTHOUSE</p>
+            <h2>Education</h2>
+            <p>From Mumbai to the Bay. Software engineering, both degrees.</p>
+            <div class="entry">
+                <h3>Master's, Software Engineering</h3>
+                <div class="entry-meta">San Jose State University · 2015 – 2017</div>
+            </div>
+            <div class="entry">
+                <h3>Bachelor of Engineering, IT</h3>
+                <div class="entry-meta">Rajiv Gandhi Institute of Technology · Mumbai University · 2010 – 2014</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="poi-section" data-poi="contact">
+        <div class="poi-content">
+            <p class="eyebrow">POI 06 // LANDING PAD</p>
+            <h2>Contact</h2>
+            <p>Mission complete. Touchdown in 3, 2, 1…</p>
+            <p>
+                <a href="mailto:pujanpkh@gmail.com">pujanpkh@gmail.com</a><br>
+                <a href="https://linkedin.com/in/pujanparikh" target="_blank">linkedin.com/in/pujanparikh</a>
+            </p>
+        </div>
+    </section>
+
+</main>
+
+<script type="module" src="js/main.js"></script>
+
+</body>
+</html>

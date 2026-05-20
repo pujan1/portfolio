@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la ~/.claude/skills/ 2>/dev/null && echo \"---\" && ls -la /Users/pujan/Desktop/project/portfolio/.claude/ 2>/dev/null)",
+      "Read(//Users/pujan/.claude/skills/**)",
+      "Bash(mkdir -p ~/.claude/skills/spline-3d-integration/guides ~/.claude/skills/spline-3d-integration/examples)",
+      "Bash(lsof -ti:8080)"
+    ],
+    "additionalDirectories": [
+      "/Users/pujan/.claude/skills/spline-3d-integration"
+    ]
+  }
+}

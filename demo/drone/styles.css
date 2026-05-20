@@ -1,0 +1,364 @@
+/* ─────────────────────────────────────────────
+   Drone flythrough — base styles
+   ───────────────────────────────────────────── */
+@font-face {
+    font-family: 'Grow Year';
+    src: url('assets/fonts/GrowYear.ttf') format('truetype');
+    font-weight: 400 900;
+    font-display: swap;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+body {
+    font-family: 'Grow Year', 'Patrick Hand', system-ui, sans-serif;
+    color: #f5f3ee;
+    background: #9fc8d6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+}
+
+/* ─────────────────────────────────────────────
+   LOADING SCREEN
+   Fades out once main.js dispatches 'assets-ready'
+   ───────────────────────────────────────────── */
+.loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background:
+        radial-gradient(circle at 30% 30%, #b6d8e3 0%, transparent 50%),
+        radial-gradient(circle at 70% 70%, #9fc8d6 0%, transparent 50%),
+        #9fc8d6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.8s ease, visibility 0.8s ease;
+}
+.loading-overlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.loader-content {
+    text-align: center;
+    padding: 2rem;
+    max-width: 500px;
+}
+
+.loader-eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    font-size: 0.85rem;
+    opacity: 0.9;
+    margin: 0 0 0.5rem;
+    text-shadow:
+        -1px -1px 0 #1a2540, 1px -1px 0 #1a2540,
+        -1px  1px 0 #1a2540, 1px  1px 0 #1a2540;
+}
+
+.loader-title {
+    font-family: 'Grow Year', cursive;
+    font-size: clamp(3rem, 7vw, 5rem);
+    margin: 0 0 1.5rem;
+    line-height: 1;
+    text-shadow:
+        -3px -3px 0 #1a2540, 3px -3px 0 #1a2540,
+        -3px  3px 0 #1a2540, 3px  3px 0 #1a2540,
+        -3px  0   0 #1a2540, 3px  0   0 #1a2540,
+         0   -3px 0 #1a2540, 0    3px 0 #1a2540;
+}
+
+.loader-bar {
+    width: 320px;
+    max-width: 100%;
+    height: 14px;
+    background: rgba(26, 37, 64, 0.25);
+    border: 2px solid #1a2540;
+    border-radius: 0;
+    margin: 0 auto 1rem;
+    overflow: hidden;
+    box-shadow: 3px 3px 0 #1a2540;
+}
+
+.loader-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: #ffd95e;
+    transition: width 0.3s ease;
+    box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.15);
+}
+
+.loader-status {
+    margin: 0.25rem 0 0.1rem;
+    font-size: 0.95rem;
+    opacity: 0.95;
+    text-shadow:
+        -1px -1px 0 #1a2540, 1px -1px 0 #1a2540,
+        -1px  1px 0 #1a2540, 1px  1px 0 #1a2540;
+}
+
+.loader-detail {
+    margin: 0;
+    font-size: 0.75rem;
+    opacity: 0.7;
+    font-family: 'Menlo', monospace;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+/* Reusable chunky outline — like a sticker / comic.
+   8-direction shadow at 2px gives a clean solid border at any size. */
+.sticker {
+    text-shadow:
+        -2px -2px 0 #1a2540,
+         2px -2px 0 #1a2540,
+        -2px  2px 0 #1a2540,
+         2px  2px 0 #1a2540,
+        -2px  0   0 #1a2540,
+         2px  0   0 #1a2540,
+         0   -2px 0 #1a2540,
+         0    2px 0 #1a2540;
+}
+.sticker-sm {
+    text-shadow:
+        -1px -1px 0 #1a2540,
+         1px -1px 0 #1a2540,
+        -1px  1px 0 #1a2540,
+         1px  1px 0 #1a2540;
+}
+
+/* 3D canvas — full viewport, fixed behind everything */
+#scene-canvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    display: block;
+}
+
+/* ─────────────────────────────────────────────
+   HUD overlay
+   ───────────────────────────────────────────── */
+.hud {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    pointer-events: none;
+    font-family: 'Grow Year', 'Patrick Hand', cursive;
+    font-size: 0.9rem;
+    letter-spacing: 0.06em;
+    color: #f5f3ee;
+}
+.hud .hud-line {
+    text-shadow:
+        -1px -1px 0 #1a2540,
+         1px -1px 0 #1a2540,
+        -1px  1px 0 #1a2540,
+         1px  1px 0 #1a2540;
+}
+
+.hud-corner {
+    position: absolute;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+.hud-tl { top: 0; left: 0; }
+.hud-tr { top: 0; right: 0; text-align: right; }
+.hud-bl { bottom: 0; left: 0; }
+.hud-br { bottom: 0; right: 0; text-align: right; }
+
+.hud-line {
+    display: flex;
+    gap: 0.6rem;
+    align-items: baseline;
+    white-space: nowrap;
+}
+.hud-tr .hud-line, .hud-br .hud-line { justify-content: flex-end; }
+
+.hud-label {
+    opacity: 0.55;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+}
+
+.hud-rec {
+    color: #ff4a4a;
+    animation: rec-blink 1.4s ease-in-out infinite;
+}
+@keyframes rec-blink {
+    0%, 60% { opacity: 1; }
+    61%, 100% { opacity: 0.25; }
+}
+
+/* Crosshair in center */
+.hud-crosshair {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 28px;
+    height: 28px;
+    transform: translate(-50%, -50%);
+    border: 1px solid rgba(245, 243, 238, 0.4);
+    border-radius: 2px;
+}
+.hud-crosshair::before,
+.hud-crosshair::after {
+    content: '';
+    position: absolute;
+    background: rgba(245, 243, 238, 0.4);
+}
+.hud-crosshair::before {
+    top: 50%; left: -10px; right: -10px;
+    height: 1px;
+    transform: translateY(-50%);
+}
+.hud-crosshair::after {
+    left: 50%; top: -10px; bottom: -10px;
+    width: 1px;
+    transform: translateX(-50%);
+}
+
+/* ─────────────────────────────────────────────
+   Scrollable content — drives flight progress
+   ───────────────────────────────────────────── */
+.content {
+    position: relative;
+    z-index: 10;
+}
+
+/* Each section reserves vertical space in normal flow (drives scroll height),
+   but the actual content is fixed-positioned so only one section is visible
+   at a time. Opacity is driven by JS based on scroll proximity. */
+.poi-section {
+    min-height: 100vh;
+    position: relative;
+    pointer-events: none;
+}
+
+.poi-section .poi-content {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    left: 3rem;
+    max-width: 480px;
+    padding: 1.5rem 0;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    pointer-events: auto;
+}
+
+/* Alternate side-to-side */
+.poi-section:nth-child(even) .poi-content {
+    left: auto;
+    right: 3rem;
+    text-align: right;
+}
+.poi-section:nth-child(even) .poi-content p { margin-left: auto; }
+.poi-section:nth-child(even) .poi-content .entry {
+    border-left: none;
+    border-right: 3px solid #ffd95e;
+    padding-left: 0;
+    padding-right: 0.8rem;
+}
+
+.poi-section.active .poi-content { opacity: 1; }
+
+.eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.25em;
+    font-size: 0.78rem;
+    opacity: 0.85;
+    margin: 0 0 1rem;
+    font-family: 'Grow Year', sans-serif;
+    text-shadow:
+        -1px -1px 0 #1a2540,
+         1px -1px 0 #1a2540,
+        -1px  1px 0 #1a2540,
+         1px  1px 0 #1a2540;
+}
+
+h1 {
+    font-family: 'Grow Year', 'Patrick Hand', cursive;
+    font-size: clamp(3.5rem, 9vw, 7rem);
+    margin: 0 0 1rem;
+    line-height: 1;
+    text-shadow:
+        -3px -3px 0 #1a2540,
+         3px -3px 0 #1a2540,
+        -3px  3px 0 #1a2540,
+         3px  3px 0 #1a2540,
+        -3px  0   0 #1a2540,
+         3px  0   0 #1a2540,
+         0   -3px 0 #1a2540,
+         0    3px 0 #1a2540;
+}
+
+h2 {
+    font-family: 'Grow Year', 'Patrick Hand', cursive;
+    font-size: clamp(2.2rem, 5.5vw, 4rem);
+    margin: 0 0 1rem;
+    line-height: 1;
+    text-shadow:
+        -2px -2px 0 #1a2540,
+         2px -2px 0 #1a2540,
+        -2px  2px 0 #1a2540,
+         2px  2px 0 #1a2540,
+        -2px  0   0 #1a2540,
+         2px  0   0 #1a2540,
+         0   -2px 0 #1a2540,
+         0    2px 0 #1a2540;
+}
+
+h3 {
+    font-family: 'Grow Year', cursive;
+    font-size: 1.1rem;
+    margin: 0.5rem 0 0.2rem;
+    line-height: 1.1;
+    text-shadow:
+        -1px -1px 0 #1a2540,
+         1px -1px 0 #1a2540,
+        -1px  1px 0 #1a2540,
+         1px  1px 0 #1a2540;
+}
+
+p {
+    font-size: 1.05rem;
+    line-height: 1.55;
+    opacity: 0.95;
+    max-width: 42ch;
+    text-shadow:
+        -1px -1px 0 #1a2540,
+         1px -1px 0 #1a2540,
+        -1px  1px 0 #1a2540,
+         1px  1px 0 #1a2540;
+}
+.poi-section:nth-child(even) p { margin-left: auto; }
+
+a { color: #ffd95e; text-decoration: none; border-bottom: 2px solid #ffd95e; }
+
+.tagline {
+    opacity: 0.85;
+    font-size: 1.05rem;
+}
+
+/* Work / education entry blocks inside POI sections */
+.entry {
+    margin: 0.6rem 0 1rem;
+    padding-left: 0.8rem;
+    border-left: 3px solid #ffd95e;
+}
+.entry-meta {
+    font-size: 0.85rem;
+    opacity: 0.85;
+    font-family: 'Grow Year', cursive;
+    text-shadow:
+        -1px -1px 0 #1a2540,
+         1px -1px 0 #1a2540,
+        -1px  1px 0 #1a2540,
+         1px  1px 0 #1a2540;
+}

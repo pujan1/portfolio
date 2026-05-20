@@ -8,15 +8,21 @@ import * as THREE from 'three';
 
 const canvas = document.getElementById('scene-canvas');
 
+// Mobile: phones blow their fillrate budget on high-DPR + soft shadows.
+// Force DPR=1 and shrink the shadow map. `?lowfx=1` forces the same path
+// on desktop for A/B testing.
+const isMobile = window.matchMedia('(max-width: 640px), (pointer: coarse)').matches
+    || new URLSearchParams(window.location.search).get('lowfx') === '1';
+
 export const renderer = new THREE.WebGLRenderer({
     canvas,
     antialias: true,
     alpha: false,
 });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setPixelRatio(isMobile ? 1 : Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = isMobile ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
 
@@ -43,7 +49,7 @@ scene.add(new THREE.HemisphereLight(0xbcdfee, 0x5a7a5a, 0.65));
 const sun = new THREE.DirectionalLight(0xfff2cf, 1.7);
 sun.position.set(10, 18, 8);
 sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.mapSize.set(isMobile ? 1024 : 2048, isMobile ? 1024 : 2048);
 // Shadow camera covers the flight corridor — extending it would smear the
 // shadow map across too many pixels and soften everything.
 sun.shadow.camera.left = -25;

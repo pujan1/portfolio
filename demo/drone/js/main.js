@@ -534,6 +534,7 @@ const DRONE_URL_FALLBACK = demoAssetUrl('incoming/drone.glb');
 // Tune these once we see the model — Hunyuan3D outputs at arbitrary scale.
 const DRONE_SCALE  = 1.0;   // multiplier applied after loading
 const DRONE_OFFSET = new THREE.Vector3(0, 0, 0); // local offset within drone group
+const DRONE_MODEL_YAW = -Math.PI / 2; // model nose is authored sideways vs. the flight path
 
 function attachLoaded(gltf) {
     console.log('[drone] real model loaded, replacing placeholder');
@@ -554,6 +555,7 @@ function attachLoaded(gltf) {
     const center = new THREE.Vector3();
     box.getCenter(center);
     root.position.sub(center).add(DRONE_OFFSET);
+    root.rotation.y += DRONE_MODEL_YAW;
 
     root.traverse((node) => {
         if (node.isMesh) {
@@ -564,9 +566,8 @@ function attachLoaded(gltf) {
 
     drone.add(root);
 
-    // Add 4 spinning rotor overlays — Hunyuan3D fused the mesh so we can't
-    // spin the original rotors. These transparent discs sit on top and rotate,
-    // giving the impression of motion-blurred props in flight.
+    // Add 4 spinning rotor overlays. They read as motion blur whether the
+    // Blender propellers are kept or removed from the source model.
     rotors.length = 0;
     const rotorPositions = [
         [ 0.55, 0.15,  0.55],
@@ -577,7 +578,7 @@ function attachLoaded(gltf) {
     const rotorDiscMat = new THREE.MeshBasicMaterial({
         color: 0x1a1a1a,
         transparent: true,
-        opacity: 0.30,
+        opacity: 0.22,
         depthWrite: false,
     });
     for (const [x, y, z] of rotorPositions) {
@@ -705,6 +706,15 @@ function updateScroll() {
 
 // Show only the section whose center is closest to viewport center
 const sectionEls = Array.from(document.querySelectorAll('.poi-section'));
+let activeSectionIndex = 0;
+
+function getPanelCompositionBias() {
+    if (window.innerWidth <= 640 || !sectionEls.length) return 0;
+    const activeSection = sectionEls[activeSectionIndex];
+    const panelOnRight = activeSection?.matches(':nth-child(even)');
+    return panelOnRight ? 2.35 : -2.35;
+}
+
 function updateActiveSection() {
     const viewportMid = window.scrollY + window.innerHeight / 2;
     let bestIdx = 0;
@@ -716,6 +726,7 @@ function updateActiveSection() {
         const d = Math.abs(mid - viewportMid);
         if (d < bestDist) { bestDist = d; bestIdx = i; }
     }
+    activeSectionIndex = bestIdx;
     for (let i = 0; i < sectionEls.length; i++) {
         sectionEls[i].classList.toggle('active', i === bestIdx);
     }
@@ -734,6 +745,9 @@ const _tmpTangent     = new THREE.Vector3();
 const _tmpLookAhead   = new THREE.Vector3();
 const _tmpCamTarget   = new THREE.Vector3();
 const _tmpCamPos      = new THREE.Vector3();
+const _tmpCameraRight = new THREE.Vector3();
+const WORLD_UP        = new THREE.Vector3(0, 1, 0);
+let cameraPanelBias   = 0;
 
 // HUD live elements
 const hud = {
@@ -803,6 +817,9 @@ function animate() {
         // Look ahead and at roughly drone altitude — keeps horizon (and mountains) in frame
         _tmpCamTarget.copy(_tmpPos).add(_tmpTangent.clone().multiplyScalar(6));
         _tmpCamTarget.y += 0.4;   // slight upward bias so mountains stay framed
+        cameraPanelBias += (getPanelCompositionBias() - cameraPanelBias) * Math.min(1, dt * 4);
+        _tmpCameraRight.crossVectors(_tmpTangent, WORLD_UP).normalize();
+        _tmpCamTarget.addScaledVector(_tmpCameraRight, cameraPanelBias);
         camera.lookAt(_tmpCamTarget);
     }
 

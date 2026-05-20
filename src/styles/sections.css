@@ -40,6 +40,8 @@
     scrollbar-color: #ffd95e transparent;
 }
 .poi-section.active .poi-content { pointer-events: auto; opacity: 1; }
+/* The mobile bottom-sheet toggle is hidden by default; mobile.css un-hides it. */
+.poi-mobile-handle { display: none; }
 .poi-section .poi-content::-webkit-scrollbar       { width: 6px; }
 .poi-section .poi-content::-webkit-scrollbar-thumb { background: #ffd95e; border-radius: 3px; }
 

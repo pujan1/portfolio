@@ -1,7 +1,7 @@
 """
 Export manually authored vegetation from vegetation_workspace.blend.
 
-Exports mesh objects in the "Vegetation" collection to
+Exports mesh objects in the "Vegetation" and "Trees" collections to
 tools/blender/build/vegetation.glb. compress_vegetation.sh then writes
 the runtime-ready glb to assets/models/vegetation.glb.
 
@@ -14,16 +14,26 @@ import bpy
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 OUT_PATH = os.path.join(SCRIPT_DIR, "build", "vegetation.glb")
-VEGETATION_COLLECTION = "Vegetation"
+SOURCE_COLLECTIONS = ("Vegetation", "Trees")
 PROTOTYPE_NAMES = {"Grass_Clump_A", "Grass_Clump_B", "Grass_Clump_C"}
 
 
-collection = bpy.data.collections.get(VEGETATION_COLLECTION)
-if collection is None:
-    raise RuntimeError(f'Missing collection "{VEGETATION_COLLECTION}"')
+collections = []
+for name in SOURCE_COLLECTIONS:
+    collection = bpy.data.collections.get(name)
+    if collection is None:
+        print(f'[export] collection "{name}" missing, skipping')
+        continue
+    collections.append(collection)
+if not collections:
+    raise RuntimeError(
+        f'No source collections present. Expected at least one of {SOURCE_COLLECTIONS}.'
+    )
 
 def export_candidates():
-    candidates = set(collection.all_objects)
+    candidates = set()
+    for collection in collections:
+        candidates.update(collection.all_objects)
     candidates.update(
         obj for obj in bpy.data.objects
         if obj.name.startswith("Grass_Clump_")

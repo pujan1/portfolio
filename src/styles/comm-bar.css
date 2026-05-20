@@ -46,6 +46,8 @@
     align-items: center;
     height: 30px;
     padding: 0 0.85rem;
+    white-space: nowrap;
+    flex-shrink: 0;
     background: #ffd95e;
     color: #1a2540;
     font-family: 'Grow Year', cursive;

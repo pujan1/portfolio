@@ -34,15 +34,28 @@ afterwards (Cmd+Shift+R) to bust the cache.
 
 ### Vegetation
 
-Vegetation is placed manually in `vegetation_workspace.blend`:
+Vegetation is placed manually in `vegetation_workspace.blend`. There are
+two collections — put grass clumps in **Vegetation** and trees in **Trees**.
+Both export to a single `vegetation.glb`.
 
 ```bash
 # One-time: build the workspace and open it
 bash tools/blender/open_vegetation_workspace.sh
 
-# Then place grass/trees in the "Vegetation" collection and export
+# If you already had a workspace before the Trees collection existed,
+# back-fill the collection without losing your placements:
+/Applications/Blender.app/Contents/MacOS/Blender --background \
+    tools/blender/vegetation_workspace.blend \
+    --python tools/blender/add_trees_collection.py
+
+# Then place objects and export
 bash tools/blender/export_vegetation.sh
 ```
+
+At runtime, [landscape.js](../src/js/landscape.js) scales every node whose
+name matches `Tree_*_Auto_*` by `AUTO_TREE_SCALE`. Manual trees keep their
+authored Blender scale — just name them anything that doesn't contain
+`_Auto_` (e.g. `Tree_Hand_Cabin_01`).
 
 ### POI landmarks (cabin, camera, guitar, etc.)
 

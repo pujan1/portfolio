@@ -60,8 +60,26 @@ loader.load(modelUrl('landscape.glb'), (gltf) => {
 /* ── Vegetation is optional. Failing to load isn't counted as an asset. ── */
 const vegLoader = new GLTFLoader();
 vegLoader.setMeshoptDecoder(MeshoptDecoder);
+// Auto-generated trees come in undersized; scale them up around their
+// trunk base. The generator emits four families (Tree_Pine_Normal_Auto_*,
+// Tree_Pine_Snow_Auto_*, Tree_Low_FBX_Auto_*, Tree_Round_FBX_Auto_*) — all
+// of them carry "_Auto_" in the node name. Manually authored trees in the
+// Trees collection should be sized to taste in Blender and named without
+// "_Auto_" so they're left alone here.
+const AUTO_TREE_SCALE = 2.0;
+const isAutoTree = (name) => typeof name === 'string'
+    && name.startsWith('Tree_')
+    && name.includes('_Auto_');
+
 vegLoader.load(modelUrl('vegetation.glb'), (gltf) => {
     const veg = gltf.scene;
+    let scaledTrees = 0;
+    veg.traverse((node) => {
+        if (isAutoTree(node.name)) {
+            node.scale.multiplyScalar(AUTO_TREE_SCALE);
+            scaledTrees++;
+        }
+    });
     veg.traverse((node) => {
         if (!node.isMesh) return;
         node.castShadow    = true;
@@ -72,7 +90,7 @@ vegLoader.load(modelUrl('vegetation.glb'), (gltf) => {
         }
     });
     scene.add(veg);
-    console.log('[vegetation] loaded');
+    console.log(`[vegetation] loaded, scaled ${scaledTrees} auto trees ×${AUTO_TREE_SCALE}`);
 }, undefined, () => {
     console.info('[vegetation] optional vegetation.glb not found');
 });

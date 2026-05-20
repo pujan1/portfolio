@@ -1,13 +1,102 @@
 /* Narrow-viewport overrides.
-   At ≤640px there's no room for side-by-side panels, and the comm bar
-   on top would collide with the iOS Safari address bar — move both. */
+   At ≤640px the POI card becomes a collapsible bottom sheet so the 3D
+   scene stays visible behind it. Tapping the header expands it; tapping
+   again or switching POI collapses it back to a header-only strip. */
 @media (max-width: 640px) {
-    .poi-section .poi-content {
-        left: 1rem;
-        right: 1rem;
-        width: auto;
+    .poi-section .poi-content,
+    .poi-section:nth-child(even) .poi-content {
+        position: fixed;
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
         max-width: none;
+        transform: none;
+        text-align: left;
+        border-radius: 14px 14px 0 0;
+        border-width: 2px 0 0 0;
+        box-shadow: 0 -4px 24px rgba(10, 16, 32, 0.45);
+        padding: 0.6rem 1.1rem 1rem;
+        max-height: 5.5rem;        /* collapsed: header only */
+        overflow: hidden;
+        transition: max-height 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+                    opacity 0.35s ease;
     }
-    .poi-section:nth-child(even) .poi-content { right: 1rem; left: 1rem; }
-    .comm-bar { top: auto; bottom: 1rem; }
+    .poi-section.active .poi-content.expanded {
+        max-height: 72vh;
+        overflow-y: auto;
+    }
+
+    /* Even sections shouldn't flip text on mobile — too cramped. */
+    .poi-section:nth-child(even) .poi-content p,
+    .poi-section:nth-child(even) .entry-toggle { text-align: left; }
+    .poi-section:nth-child(even) .entry {
+        border-left: 3px solid #ffd95e;
+        border-right: none;
+        padding-left: 0.8rem;
+        padding-right: 0;
+    }
+    .poi-section:nth-child(even) .entry-detail ul {
+        padding-left: 1.1rem;
+        padding-right: 0;
+        list-style-position: outside;
+        direction: ltr;
+    }
+    .poi-section:nth-child(even) p { margin-left: 0; }
+
+    /* Header strip that's always visible — title + toggle chevron. */
+    .poi-section .poi-content::before {
+        content: "";
+        position: sticky;
+        top: 0;
+        display: block;
+        width: 36px;
+        height: 4px;
+        margin: 2px auto 6px;
+        border-radius: 2px;
+        background: rgba(255, 217, 94, 0.6);
+    }
+    .poi-mobile-handle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.6rem;
+        width: 100%;
+        background: none;
+        border: none;
+        color: inherit;
+        font-family: inherit;
+        padding: 0.2rem 0 0.5rem;
+        margin: 0 0 0.4rem;
+        cursor: pointer;
+        text-align: left;
+    }
+    .poi-mobile-handle-label {
+        font-family: 'Grow Year', sans-serif;
+        font-size: 0.95rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #ffd95e;
+        text-shadow:
+            -1px -1px 0 #1a2540, 1px -1px 0 #1a2540,
+            -1px  1px 0 #1a2540, 1px  1px 0 #1a2540;
+    }
+    .poi-mobile-handle-chevron {
+        font-size: 1.2rem;
+        color: #ffd95e;
+        transition: transform 0.3s ease;
+    }
+    .poi-content.expanded .poi-mobile-handle-chevron { transform: rotate(180deg); }
+
+    /* Shrink hero text so the intro card stays inside the collapsed strip. */
+    .poi-section .poi-content h1 { font-size: clamp(2.2rem, 9vw, 3rem); }
+    .poi-section .poi-content h2 { font-size: clamp(1.6rem, 6vw, 2.2rem); }
+    .poi-content .eyebrow { margin-bottom: 0.4rem; }
+
+    /* Keep the comm bar pinned to the top on mobile (default), but nudge it
+       a touch lower to clear the iOS safe area. */
+    .comm-bar { top: max(0.6rem, env(safe-area-inset-top, 0.6rem)); bottom: auto; }
+    /* Lift HUD bottom corners so they don't collide with the sheet. */
+    .hud-bl, .hud-br { bottom: 6.2rem; }
 }

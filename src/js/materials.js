@@ -7,38 +7,100 @@
 import * as THREE from 'three';
 
 /* ─────────────────────────────────────────────
-   Water — gentle scrolling shimmer. Vertices stay pinned to terrain so
-   the authored river/waterfall meshes don't pop out of their carved beds.
+   Water — procedural ripple normals + fresnel edge + sun specular.
+   Vertices stay pinned to terrain so the authored river/waterfall meshes
+   don't pop out of their carved beds; all motion happens in fragments.
    ───────────────────────────────────────────── */
 export const WATER_SHADER = new THREE.ShaderMaterial({
     uniforms: {
-        uTime:  { value: 0 },
-        uColor: { value: new THREE.Color(0x44a7c0) },
-        uFoam:  { value: new THREE.Color(0xb8e6f2) },
+        uTime:    { value: 0 },
+        uColor:   { value: new THREE.Color(0x2e8aa6) },
+        uDeep:    { value: new THREE.Color(0x0e3a52) },
+        uFoam:    { value: new THREE.Color(0xdaf2f8) },
+        uSunDir:  { value: new THREE.Vector3(0.42, 0.78, 0.46).normalize() },
     },
     vertexShader: /* glsl */`
-        uniform float uTime;
-        varying vec3 vPos;
+        varying vec3 vWorldPos;
         varying vec3 vNormal;
+        varying vec3 vViewDir;
         void main() {
-            vPos    = position;
-            vNormal = normalize(normalMatrix * normal);
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            vec4 worldPos = modelMatrix * vec4(position, 1.0);
+            vWorldPos = worldPos.xyz;
+            vNormal   = normalize(mat3(modelMatrix) * normal);
+            vViewDir  = normalize(cameraPosition - worldPos.xyz);
+            gl_Position = projectionMatrix * viewMatrix * worldPos;
         }
     `,
     fragmentShader: /* glsl */`
         uniform float uTime;
-        uniform vec3 uColor;
-        uniform vec3 uFoam;
-        varying vec3 vPos;
+        uniform vec3  uColor;
+        uniform vec3  uDeep;
+        uniform vec3  uFoam;
+        uniform vec3  uSunDir;
+        varying vec3 vWorldPos;
         varying vec3 vNormal;
+        varying vec3 vViewDir;
+
+        // Cheap value-noise good enough for ripple normals at this scale.
+        float hash21(vec2 p) {
+            p = fract(p * vec2(234.34, 435.345));
+            p += dot(p, p + 34.23);
+            return fract(p.x * p.y);
+        }
+        float vnoise(vec2 p) {
+            vec2 i = floor(p);
+            vec2 f = fract(p);
+            float a = hash21(i);
+            float b = hash21(i + vec2(1.0, 0.0));
+            float c = hash21(i + vec2(0.0, 1.0));
+            float d = hash21(i + vec2(1.0, 1.0));
+            vec2 u = f * f * (3.0 - 2.0 * f);
+            return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+        }
+        // Two scrolling noise layers → height field; perturb normal in xz.
+        float waveHeight(vec2 p) {
+            float a = vnoise(p * 1.7 + vec2(uTime *  0.35,  uTime * 0.22));
+            float b = vnoise(p * 3.1 + vec2(uTime * -0.27,  uTime * 0.41));
+            return a * 0.65 + b * 0.35;
+        }
+
         void main() {
-            // Cheap noise approximation — sin × cos over xz with time offset.
-            float n = sin(vPos.x * 0.8 + uTime * 1.8) * cos(vPos.z * 0.6 - uTime * 1.3);
-            n = smoothstep(-0.2, 0.6, n);
-            vec3 col = mix(uColor, uFoam, n * 0.45);
-            float light = 0.7 + 0.3 * vNormal.y;
-            gl_FragColor = vec4(col * light, 1.0);
+            vec2 uv = vWorldPos.xz * 0.45;
+
+            // Finite-difference gradient of the height field → ripple normal.
+            float eps = 0.18;
+            float hC = waveHeight(uv);
+            float hX = waveHeight(uv + vec2(eps, 0.0));
+            float hZ = waveHeight(uv + vec2(0.0, eps));
+            vec3 ripple = normalize(vec3(hC - hX, eps * 1.6, hC - hZ));
+            // Blend into the mesh normal so vertical-ish surfaces don't go wild.
+            vec3 N = normalize(mix(vNormal, ripple, 0.78));
+
+            vec3 V = normalize(vViewDir);
+            vec3 L = normalize(uSunDir);
+
+            // Fresnel — water gets brighter at grazing angles.
+            float fres = pow(1.0 - max(dot(N, V), 0.0), 4.0);
+
+            // Base color: deep tint underneath, light tint at facing angles.
+            float facing = clamp(dot(N, V), 0.0, 1.0);
+            vec3 base = mix(uDeep, uColor, facing);
+
+            // Sun glint — sharp Blinn-Phong specular toward the camera.
+            vec3 H = normalize(L + V);
+            float spec = pow(max(dot(N, H), 0.0), 64.0);
+
+            // Foam highlight where the ripple peaks crest.
+            float crest = smoothstep(0.55, 0.95, hC);
+
+            vec3 col = base;
+            col = mix(col, uFoam, fres * 0.55);          // grazing-angle sky tint
+            col = mix(col, uFoam, crest * 0.18);          // foamy ripple tops
+            col += vec3(1.0, 0.96, 0.85) * spec * 0.9;    // sun glint
+            // Soft ambient response on the mesh normal so river bends still read.
+            col *= 0.78 + 0.22 * max(vNormal.y, 0.0);
+
+            gl_FragColor = vec4(col, 1.0);
         }
     `,
 });

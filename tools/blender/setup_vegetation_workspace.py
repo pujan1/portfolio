@@ -35,6 +35,7 @@ bpy.ops.import_scene.gltf(filepath=LANDSCAPE_GLB)
 
 landscape_collection = ensure_collection("Landscape_Reference")
 vegetation_collection = ensure_collection("Vegetation")
+trees_collection = ensure_collection("Trees")
 
 for obj in list(bpy.context.scene.objects):
     if obj.name.startswith("Camera") or obj.name.startswith("Light"):
@@ -49,8 +50,8 @@ bpy.context.view_layer.active_layer_collection = bpy.context.view_layer.layer_co
 
 note_curve = bpy.data.curves.new("Vegetation_Workspace_Note", "FONT")
 note_curve.body = (
-    "Add trees and grass to the Vegetation collection. "
-    "Export selected Vegetation objects as tools/blender/build/vegetation.glb."
+    "Place grass in the Vegetation collection and trees in the Trees collection. "
+    "Export combined as tools/blender/build/vegetation.glb."
 )
 note_curve.align_x = "CENTER"
 note_curve.size = 2.0

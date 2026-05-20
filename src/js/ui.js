@@ -29,6 +29,11 @@ function updateActiveSection() {
         const d   = Math.abs(mid - viewportMid);
         if (d < bestDist) { bestDist = d; bestIdx = i; }
     }
+    if (bestIdx !== activeSectionIndex) {
+        // Auto-collapse the previous mobile sheet so each new POI starts clean.
+        const prev = sectionEls[activeSectionIndex];
+        prev?.querySelector('.poi-content')?.classList.remove('expanded');
+    }
     activeSectionIndex = bestIdx;
     for (let i = 0; i < sectionEls.length; i++) {
         sectionEls[i].classList.toggle('active', i === bestIdx);
@@ -49,6 +54,32 @@ export function getPanelCompositionBias() {
     const panelOnRight = sectionEls[activeSectionIndex]?.matches(':nth-child(even)');
     return panelOnRight ? 2.35 : -2.35;
 }
+
+/* ── Mobile bottom-sheet toggle.
+   Inject a tappable header into each POI content panel. The button is
+   visible only via the mobile.css media query — on desktop it's hidden
+   by the global .poi-mobile-handle rule below. ── */
+function injectMobileHandle(content) {
+    if (content.querySelector('.poi-mobile-handle')) return;
+    const eyebrow = content.querySelector('.eyebrow');
+    const heading = content.querySelector('h1, h2');
+    const label = eyebrow?.textContent?.trim() || heading?.textContent?.trim() || 'Details';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'poi-mobile-handle';
+    btn.setAttribute('aria-expanded', 'false');
+    btn.innerHTML =
+        `<span class="poi-mobile-handle-label"></span>` +
+        `<span class="poi-mobile-handle-chevron" aria-hidden="true">▲</span>`;
+    btn.querySelector('.poi-mobile-handle-label').textContent = label;
+    content.prepend(btn);
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const expanded = content.classList.toggle('expanded');
+        btn.setAttribute('aria-expanded', String(expanded));
+    });
+}
+document.querySelectorAll('.poi-section .poi-content').forEach(injectMobileHandle);
 
 /* ── Work entry accordion ── */
 document.querySelectorAll('.entry-toggle').forEach((btn) => {

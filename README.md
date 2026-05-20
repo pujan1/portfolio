@@ -6,6 +6,8 @@ JavaScript on top of Three.js. Zero build step, deployed straight from
 
 Live URL: [pujan.tech](https://pujan.tech)
 
+![Drone flythrough portfolio screenshot](assets/screenshot.png)
+
 ## Layout
 
 ```

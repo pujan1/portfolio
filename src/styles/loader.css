@@ -1,0 +1,85 @@
+/* Loading overlay — covers everything until main.js has fired
+   markLoaded() enough times to add .hidden. */
+.loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background:
+        radial-gradient(circle at 30% 30%, #b6d8e3 0%, transparent 50%),
+        radial-gradient(circle at 70% 70%, #9fc8d6 0%, transparent 50%),
+        #9fc8d6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.8s ease, visibility 0.8s ease;
+}
+.loading-overlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.loader-content {
+    text-align: center;
+    padding: 2rem;
+    max-width: 500px;
+}
+
+.loader-eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    font-size: 0.85rem;
+    opacity: 0.9;
+    margin: 0 0 0.5rem;
+    text-shadow:
+        -1px -1px 0 #1a2540, 1px -1px 0 #1a2540,
+        -1px  1px 0 #1a2540, 1px  1px 0 #1a2540;
+}
+
+.loader-title {
+    font-family: 'Grow Year', cursive;
+    font-size: clamp(3rem, 7vw, 5rem);
+    margin: 0 0 1.5rem;
+    line-height: 1;
+    text-shadow:
+        -3px -3px 0 #1a2540, 3px -3px 0 #1a2540,
+        -3px  3px 0 #1a2540, 3px  3px 0 #1a2540,
+        -3px  0   0 #1a2540, 3px  0   0 #1a2540,
+         0   -3px 0 #1a2540, 0    3px 0 #1a2540;
+}
+
+.loader-bar {
+    width: 320px;
+    max-width: 100%;
+    height: 14px;
+    background: rgba(26, 37, 64, 0.25);
+    border: 2px solid #1a2540;
+    margin: 0 auto 1rem;
+    overflow: hidden;
+    box-shadow: 3px 3px 0 #1a2540;
+}
+
+.loader-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: #ffd95e;
+    transition: width 0.3s ease;
+    box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.15);
+}
+
+.loader-status {
+    margin: 0.25rem 0 0.1rem;
+    font-size: 0.95rem;
+    opacity: 0.95;
+    text-shadow:
+        -1px -1px 0 #1a2540, 1px -1px 0 #1a2540,
+        -1px  1px 0 #1a2540, 1px  1px 0 #1a2540;
+}
+
+.loader-detail {
+    margin: 0;
+    font-size: 0.75rem;
+    opacity: 0.7;
+    font-family: 'Menlo', monospace;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}

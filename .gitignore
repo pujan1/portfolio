@@ -54,15 +54,18 @@ yarn.lock
 
 # ─────────────────────────────────────────────
 # Build / progress artifacts
-# Throwaway iteration screenshots — keep _reference_*.png files,
-# they're committed deliverables.
+# Throwaway iteration screenshots from interactive Blender work.
 # ─────────────────────────────────────────────
-demo/**/_progress_*.png
-demo/**/_tmp_*
-demo/**/_wip_*
+**/_progress_*.png
+**/_tmp_*
+**/_wip_*
+
+# Blender → glTF build cache. Re-derived from the .blend files by
+# tools/blender/{rebuild,export_*,compress_*}.sh.
+tools/blender/build/
 
 # ─────────────────────────────────────────────
-# Skill / scratch staging (not part of the site)
+# Scratch staging (not part of the site)
 # ─────────────────────────────────────────────
 temp_skills/
 

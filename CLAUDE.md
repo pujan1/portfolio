@@ -1,61 +1,103 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code when working in this repo.
 
 ## Project
 
-Personal portfolio site for Pujan Parikh, deployed via GitHub Pages from the repo root. Vanilla HTML/CSS/JS — zero dependencies, no build step.
+Pujan's portfolio site — a Three.js drone flythrough deployed via
+GitHub Pages from the repo root. Vanilla JS modules, no build step.
 
 ## Local development
 
-`js/main.js` uses `fetch()` to load `data/portfolio.json`, so opening `index.html` via `file://` will fail. Serve over HTTP:
+`src/js/main.js` is an ES module that pulls in `three` via importmap
+and fetches GLBs over HTTP. Opening `index.html` via `file://` will
+fail. Serve over HTTP:
 
 ```bash
 python3 -m http.server 8080
-# or: npx serve .
+# or:  npx serve .
 ```
 
 ## Deployment
 
-GitHub Pages serves `/` on `main`. `.nojekyll` disables Jekyll processing. `CNAME` is the custom domain. Pushing to `main` is the deploy — there is no CI/build pipeline.
+GitHub Pages serves `/` on `main`. `.nojekyll` disables Jekyll
+processing. `CNAME` pins the custom domain. Pushing to `main` is the
+deploy — there is no CI/build pipeline.
 
 ## Architecture
 
-Content is decoupled from markup: [index.html](index.html) is a static shell with empty container divs, and [js/main.js](js/main.js) fetches [data/portfolio.json](data/portfolio.json) at runtime and renders into those containers. **To update site content, edit `portfolio.json` — not the HTML.**
+`index.html` is a static shell — the `<canvas>`, HUD overlay, comm
+bar, and seven `<section class="poi-section">` blocks that drive the
+flight. All 3D and DOM behavior lives in `src/js/`.
 
-Render flow in [main.js](js/main.js):
+### JS module graph
 
-1. `loadPortfolio()` fetches JSON, then calls `renderPersonal`, `renderStickers`, `renderExperience`, `renderEducation`, `renderSkills`, `renderPhotos` — each writes `innerHTML` into a container by ID.
-2. Interaction wiring (`initExperienceInteractions`, `initEducationInteractions`, `initSkillsInteractions`, `initCursorBuddy`) runs **after** rendering because it queries DOM nodes that don't exist until then. Don't move these out of `loadPortfolio()` or the listeners will bind to nothing.
-3. Ambient animations (paper airplane, crane flock, boat, pencil, eraser, shooting star, particles) are IIFEs at module scope — they only depend on static elements in `index.html`, so they run independently of data load.
+`src/js/main.js` is the entry. The split keeps each file focused:
 
-### Container ID contract
-
-Renderers find their targets by hard-coded IDs in `index.html`. Changing an ID requires updating both files:
-
-| Renderer | Target IDs |
+| Module | Owns |
 |---|---|
-| `renderPersonal` | `hero-subtitle`, `hero-name`, `contact-info`, `hero-summary`, `hero-portrait`, `.resume-link` |
-| `renderStickers` | `sticker-row` |
-| `renderExperience` | `experience-cards` |
-| `renderEducation` | `education-cards` |
-| `renderSkills` | `skills-container` |
-| `renderPhotos` | `photo-grid` |
+| `scene.js`        | renderer, scene, camera, lights, resize |
+| `flight-path.js`  | POI list, Catmull-Rom curve, placeholder cubes |
+| `materials.js`    | water + grass shaders + per-frame `tickMaterials(dt)` |
+| `drone.js`        | placeholder drone, real-GLB swap, spinning rotors |
+| `landscape.js`    | landscape + optional vegetation load, water/grass material swap |
+| `poi-assets.js`   | per-POI GLB loads + placeholder swap |
+| `camera-rig.js`   | chase cam + `?debugOverview=1` orbit |
+| `hud.js`          | corner telemetry display |
+| `ui.js`           | scroll progress, active section, entry accordion, lightbox |
+| `loader.js`       | loading overlay (counts 8 critical assets) |
+| `paths.js`        | `modelUrl()` — `import.meta.url`-relative to `/assets/models/` |
 
-### Experience JSON shape
+`main.js` runs the animate loop: it pulls scroll progress from `ui`,
+positions the drone along the curve, ticks materials, calls
+`updateCamera` and `updateHud`, and renders. Side-effect-only modules
+(`landscape`, `poi-assets`, `ui`) start their work at import time.
 
-Each `experience[]` entry supports either flat `bullets: []` or grouped `sections: [{heading, bullets}]` — `renderExperience` checks `job.sections` first, then falls back to `job.bullets`. `job.open: true` makes that card start expanded. The accordion toggle is wired via inline `onclick="toggleCard(this)"` in the rendered HTML, so `toggleCard` must remain a global.
+### Adding/moving POIs
 
-### Characters and bubbles
+The POI order is the source of truth in two places that **must stay in
+sync**:
 
-Five mascots — Mascot, Whiskers, Carl, Prof, Gizmo — each have a fixed element ID and a paired `*-bubble` element. The shared `showBubble(id, text, duration)` helper toggles a `.hidden` class and auto-clears. The mascot eye-tracking handler is global on `mousemove` — fine because it's a single rAF-free transform.
+1. `POIS` array in `src/js/flight-path.js` — drives curve geometry and
+   placeholder/landmark placement.
+2. `<section class="poi-section">` order in `index.html` — drives the
+   curve parameter via scroll height (each section is 100vh).
 
-### Theme
+The Nth section corresponds to `POIS[N]`. The first POI (`intro`) has
+no landmark asset; every subsequent POI has `asset`, `target`, and
+`rotY` fields.
 
-Dark mode is the default (set on `<html data-theme="dark">` before JS runs) and persisted to `localStorage` under `pp-theme`. The shooting star animation gates itself on `data-theme === 'dark'`.
+### Element ID contract
+
+`src/js/` modules find DOM nodes by hard-coded IDs in `index.html`:
+
+| Module | IDs it reads |
+|---|---|
+| `scene.js`   | `#scene-canvas` |
+| `loader.js`  | `#loading-overlay`, `#loader-bar-fill`, `#loader-status`, `#loader-detail` |
+| `hud.js`     | `#hud-bat`, `#hud-alt`, `#hud-spd`, `#hud-gps`, `#hud-mode`, `#hud-progress` |
+| `ui.js`      | `.poi-section`, `.entry-toggle`, `.photo-grid img`, `#lightbox`, `#lightbox-img` |
+
+### CSS
+
+`src/styles/main.css` is the entry — it `@import`s the rest in order:
+`loader`, `hud`, `sections`, `comm-bar`, `components`, `mobile`. The
+font is loaded from `assets/fonts/GrowYear.ttf` via `@font-face`.
+
+## Rebuilding 3D assets
+
+The Blender pipeline lives in `tools/`. Outputs land in
+`tools/blender/build/` (gitignored), and the `compress_*.sh` scripts
+write the runtime-ready compressed GLBs to `assets/models/`. See
+[tools/README.md](tools/README.md). You normally don't touch any of
+this unless you're iterating on the diorama itself.
 
 ## Conventions
 
-- All styling lives in [css/styles.css](css/styles.css) — no inline `<style>` blocks, no CSS-in-JS. Theming is done via CSS custom properties switched on `[data-theme]`.
-- Renderers build HTML via template literals and `innerHTML`. Content comes from a trusted local JSON file, so this is intentional — but **don't pipe user input through these renderers** without escaping.
-- New interactive sections should follow the pattern: empty container in `index.html` → renderer function in `main.js` → `init*Interactions()` called from `loadPortfolio()` after render.
+- All renderers build HTML strings via template literals — **do not
+  pipe user input through `innerHTML`** without escaping.
+- Don't add inline `<style>` or CSS-in-JS — every rule belongs in
+  `src/styles/`.
+- Keep `POIS` indices and `<section>` order locked together.
+- The `?debugOverview=1` query string is the supported way to inspect
+  the diorama from above without editing camera code.

@@ -1,0 +1,59 @@
+/* Persistent comms bar — top-center pill with socials + resume.
+   Visible across every section (no scroll-driven fade). */
+.comm-bar {
+    position: fixed;
+    top: 1.25rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 30;
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+    padding: 0.35rem 0.45rem;
+    background: rgba(18, 26, 46, 0.55);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 2px solid #1a2540;
+    border-radius: 999px;
+    box-shadow: 3px 3px 0 rgba(26, 37, 64, 0.5);
+}
+.comm-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: rgba(245, 243, 238, 0.08);
+    color: #f5f3ee;
+    border-bottom: none;
+    font-family: 'Grow Year', cursive;
+    font-size: 0.95rem;
+    line-height: 1;
+    transition: background 0.2s ease, transform 0.2s ease;
+    text-shadow:
+        -1px -1px 0 #1a2540, 1px -1px 0 #1a2540,
+        -1px  1px 0 #1a2540, 1px  1px 0 #1a2540;
+}
+.comm-link:hover {
+    background: #ffd95e;
+    color: #1a2540;
+    transform: translateY(-1px);
+    text-shadow: none;
+}
+.comm-resume {
+    display: inline-flex;
+    align-items: center;
+    height: 30px;
+    padding: 0 0.85rem;
+    background: #ffd95e;
+    color: #1a2540;
+    font-family: 'Grow Year', cursive;
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+    border-radius: 999px;
+    border-bottom: none;
+    border: 2px solid #1a2540;
+    transition: transform 0.2s ease, background 0.2s ease;
+}
+.comm-resume:hover { transform: translateY(-1px); background: #ffe57f; }

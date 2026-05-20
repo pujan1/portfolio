@@ -1,0 +1,213 @@
+/* Scrollable POI sections.
+   Each .poi-section reserves 100vh of normal flow (so total scroll
+   height = N × viewport height, which drives the curve parameter),
+   but the actual content panel inside is fixed-positioned and fades
+   in only for the active section. ui.js toggles .active. */
+
+.content {
+    position: relative;
+    z-index: 10;
+}
+
+.poi-section {
+    min-height: 100vh;
+    position: relative;
+    pointer-events: none;
+}
+
+.poi-section .poi-content {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    left: 3rem;
+    width: min(480px, calc(100vw - 6rem));
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 1.4rem 1.6rem;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    pointer-events: none;
+
+    /* Readable card — translucent dark + blur + comic outline */
+    background: rgba(18, 26, 46, 0.55);
+    backdrop-filter: blur(14px) saturate(120%);
+    -webkit-backdrop-filter: blur(14px) saturate(120%);
+    border: 2px solid #1a2540;
+    border-radius: 14px;
+    box-shadow: 4px 4px 0 rgba(26, 37, 64, 0.6);
+
+    scrollbar-width: thin;
+    scrollbar-color: #ffd95e transparent;
+}
+.poi-section.active .poi-content { pointer-events: auto; opacity: 1; }
+.poi-section .poi-content::-webkit-scrollbar       { width: 6px; }
+.poi-section .poi-content::-webkit-scrollbar-thumb { background: #ffd95e; border-radius: 3px; }
+
+/* Even-numbered sections flip to the right side so the camera can pan
+   away from the panel and the landmark stays visible. camera-rig.js
+   uses :nth-child(even) to compute the lateral bias. */
+.poi-section:nth-child(even) .poi-content {
+    left: auto;
+    right: 3rem;
+    text-align: right;
+}
+.poi-section:nth-child(even) .poi-content p { margin-left: auto; }
+.poi-section:nth-child(even) .poi-content .entry {
+    border-left: none;
+    border-right: 3px solid #ffd95e;
+    padding-left: 0;
+    padding-right: 0.8rem;
+}
+
+.eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.25em;
+    font-size: 0.78rem;
+    opacity: 0.85;
+    margin: 0 0 1rem;
+    font-family: 'Grow Year', sans-serif;
+    text-shadow:
+        -1px -1px 0 #1a2540, 1px -1px 0 #1a2540,
+        -1px  1px 0 #1a2540, 1px  1px 0 #1a2540;
+}
+
+h1 {
+    font-family: 'Grow Year', 'Patrick Hand', cursive;
+    font-size: clamp(3.5rem, 9vw, 7rem);
+    margin: 0 0 1rem;
+    line-height: 1;
+    text-shadow:
+        -3px -3px 0 #1a2540, 3px -3px 0 #1a2540,
+        -3px  3px 0 #1a2540, 3px  3px 0 #1a2540,
+        -3px  0   0 #1a2540, 3px  0   0 #1a2540,
+         0   -3px 0 #1a2540, 0    3px 0 #1a2540;
+}
+
+h2 {
+    font-family: 'Grow Year', 'Patrick Hand', cursive;
+    font-size: clamp(2.2rem, 5.5vw, 4rem);
+    margin: 0 0 1rem;
+    line-height: 1;
+    text-shadow:
+        -2px -2px 0 #1a2540, 2px -2px 0 #1a2540,
+        -2px  2px 0 #1a2540, 2px  2px 0 #1a2540,
+        -2px  0   0 #1a2540, 2px  0   0 #1a2540,
+         0   -2px 0 #1a2540, 0    2px 0 #1a2540;
+}
+
+h3 {
+    font-family: 'Grow Year', cursive;
+    font-size: 1.1rem;
+    margin: 0.5rem 0 0.2rem;
+    line-height: 1.1;
+    text-shadow:
+        -1px -1px 0 #1a2540, 1px -1px 0 #1a2540,
+        -1px  1px 0 #1a2540, 1px  1px 0 #1a2540;
+}
+
+p {
+    font-size: 1.05rem;
+    line-height: 1.55;
+    opacity: 0.95;
+    max-width: 42ch;
+    text-shadow:
+        -1px -1px 0 #1a2540, 1px -1px 0 #1a2540,
+        -1px  1px 0 #1a2540, 1px  1px 0 #1a2540;
+}
+.poi-section:nth-child(even) p { margin-left: auto; }
+
+a { color: #ffd95e; text-decoration: none; border-bottom: 2px solid #ffd95e; }
+
+.tagline { opacity: 0.85; font-size: 1.05rem; }
+
+/* Work / education blocks inside POI sections */
+.entry {
+    margin: 0.6rem 0 1rem;
+    padding-left: 0.8rem;
+    border-left: 3px solid #ffd95e;
+}
+.entry-meta {
+    font-size: 0.85rem;
+    opacity: 0.85;
+    font-family: 'Grow Year', cursive;
+    text-shadow:
+        -1px -1px 0 #1a2540, 1px -1px 0 #1a2540,
+        -1px  1px 0 #1a2540, 1px  1px 0 #1a2540;
+}
+
+/* Collapsible details — toggled via .entry.expanded by ui.js */
+.entry-toggle {
+    background: none;
+    border: none;
+    color: inherit;
+    font-family: inherit;
+    padding: 0;
+    width: 100%;
+    cursor: pointer;
+    text-align: inherit;
+}
+.poi-section:nth-child(even) .entry-toggle { text-align: right; }
+.entry-toggle:focus-visible { outline: 2px dashed #ffd95e; outline-offset: 4px; }
+
+.entry-toggle .chevron {
+    display: inline-block;
+    margin-left: 0.4rem;
+    transition: transform 0.25s ease;
+}
+.entry.expanded .entry-toggle .chevron { transform: rotate(90deg); }
+
+.entry-detail {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease, margin-top 0.4s ease, opacity 0.4s ease;
+    opacity: 0;
+    margin-top: 0;
+}
+.entry.expanded .entry-detail {
+    max-height: 800px;
+    opacity: 1;
+    margin-top: 0.5rem;
+}
+.entry-detail h4 {
+    font-family: 'Grow Year', cursive;
+    font-size: 0.95rem;
+    margin: 0.6rem 0 0.2rem;
+    color: #ffd95e;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    text-shadow:
+        -1px -1px 0 #1a2540, 1px -1px 0 #1a2540,
+        -1px  1px 0 #1a2540, 1px  1px 0 #1a2540;
+}
+.entry-detail ul {
+    margin: 0.25rem 0 0.4rem;
+    padding-left: 1.1rem;
+    list-style: '› ';
+}
+/* RTL trick: flip list bullet to the right edge on even sections, then
+   un-flip each <li>'s text so it still reads left-to-right. */
+.poi-section:nth-child(even) .entry-detail ul {
+    padding-left: 0;
+    padding-right: 1.1rem;
+    list-style-position: inside;
+    direction: rtl;
+}
+.poi-section:nth-child(even) .entry-detail ul li { direction: ltr; }
+.entry-detail li {
+    font-size: 0.92rem;
+    line-height: 1.45;
+    margin: 0.15rem 0;
+    opacity: 0.95;
+}
+.entry-detail .stack {
+    font-size: 0.78rem;
+    opacity: 0.7;
+    margin: 0.5rem 0 0;
+    font-style: italic;
+}
+
+.hint {
+    font-size: 0.78rem;
+    opacity: 0.7;
+    font-style: italic;
+}

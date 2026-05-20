@@ -1,0 +1,13 @@
+/* Narrow-viewport overrides.
+   At ≤640px there's no room for side-by-side panels, and the comm bar
+   on top would collide with the iOS Safari address bar — move both. */
+@media (max-width: 640px) {
+    .poi-section .poi-content {
+        left: 1rem;
+        right: 1rem;
+        width: auto;
+        max-width: none;
+    }
+    .poi-section:nth-child(even) .poi-content { right: 1rem; left: 1rem; }
+    .comm-bar { top: auto; bottom: 1rem; }
+}

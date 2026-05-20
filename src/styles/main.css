@@ -1,0 +1,52 @@
+/* Entry stylesheet — imports each section. Order matters only for
+   later rules overriding earlier ones; mobile.css is last so its
+   media-query rules win at small widths. */
+@import url('./loader.css');
+@import url('./hud.css');
+@import url('./sections.css');
+@import url('./comm-bar.css');
+@import url('./components.css');
+@import url('./mobile.css');
+
+@font-face {
+    font-family: 'Grow Year';
+    src: url('../../assets/fonts/GrowYear.ttf') format('truetype');
+    font-weight: 400 900;
+    font-display: swap;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+body {
+    font-family: 'Grow Year', 'Patrick Hand', system-ui, sans-serif;
+    color: #f5f3ee;
+    background: #9fc8d6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+}
+
+/* Reusable chunky outline — comic-style 8-direction text shadow at
+   2px. Smaller variant for body-sized text. */
+.sticker {
+    text-shadow:
+        -2px -2px 0 #1a2540,  2px -2px 0 #1a2540,
+        -2px  2px 0 #1a2540,  2px  2px 0 #1a2540,
+        -2px  0   0 #1a2540,  2px  0   0 #1a2540,
+         0   -2px 0 #1a2540,  0    2px 0 #1a2540;
+}
+.sticker-sm {
+    text-shadow:
+        -1px -1px 0 #1a2540, 1px -1px 0 #1a2540,
+        -1px  1px 0 #1a2540, 1px  1px 0 #1a2540;
+}
+
+/* 3D canvas — pinned full-viewport behind every other layer. */
+#scene-canvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    display: block;
+}

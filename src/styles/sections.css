@@ -45,20 +45,13 @@
 .poi-section .poi-content::-webkit-scrollbar       { width: 6px; }
 .poi-section .poi-content::-webkit-scrollbar-thumb { background: #ffd95e; border-radius: 3px; }
 
-/* Even-numbered sections flip to the right side so the camera can pan
-   away from the panel and the landmark stays visible. camera-rig.js
-   uses :nth-child(even) to compute the lateral bias. */
+/* Even-numbered sections move the card to the right side so the camera
+   can pan away from the panel and the landmark stays visible. Text inside
+   stays left-aligned — only the card position flips. camera-rig.js uses
+   :nth-child(even) to compute the lateral bias. */
 .poi-section:nth-child(even) .poi-content {
     left: auto;
     right: 3rem;
-    text-align: right;
-}
-.poi-section:nth-child(even) .poi-content p { margin-left: auto; }
-.poi-section:nth-child(even) .poi-content .entry {
-    border-left: none;
-    border-right: 3px solid #ffd95e;
-    padding-left: 0;
-    padding-right: 0.8rem;
 }
 
 .eyebrow {
@@ -116,7 +109,6 @@ p {
         -1px -1px 0 #1a2540, 1px -1px 0 #1a2540,
         -1px  1px 0 #1a2540, 1px  1px 0 #1a2540;
 }
-.poi-section:nth-child(even) p { margin-left: auto; }
 
 a { color: #ffd95e; text-decoration: none; border-bottom: 2px solid #ffd95e; }
 
@@ -148,7 +140,6 @@ a { color: #ffd95e; text-decoration: none; border-bottom: 2px solid #ffd95e; }
     cursor: pointer;
     text-align: inherit;
 }
-.poi-section:nth-child(even) .entry-toggle { text-align: right; }
 .entry-toggle:focus-visible { outline: 2px dashed #ffd95e; outline-offset: 4px; }
 
 .entry-toggle .chevron {
@@ -186,15 +177,6 @@ a { color: #ffd95e; text-decoration: none; border-bottom: 2px solid #ffd95e; }
     padding-left: 1.1rem;
     list-style: '› ';
 }
-/* RTL trick: flip list bullet to the right edge on even sections, then
-   un-flip each <li>'s text so it still reads left-to-right. */
-.poi-section:nth-child(even) .entry-detail ul {
-    padding-left: 0;
-    padding-right: 1.1rem;
-    list-style-position: inside;
-    direction: rtl;
-}
-.poi-section:nth-child(even) .entry-detail ul li { direction: ltr; }
 .entry-detail li {
     font-size: 0.92rem;
     line-height: 1.45;

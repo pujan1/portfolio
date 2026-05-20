@@ -32,6 +32,13 @@
 <!-- 3D canvas (fills viewport, fixed background) -->
 <canvas id="scene-canvas"></canvas>
 
+<!-- Persistent comms bar — socials + resume, always visible -->
+<div class="comm-bar" id="comm-bar">
+    <a class="comm-link" href="https://linkedin.com/in/pujanparikh" target="_blank" rel="noopener" aria-label="LinkedIn">in</a>
+    <a class="comm-link" href="mailto:pujanpkh@gmail.com" aria-label="Email">@</a>
+    <a class="comm-resume" href="../../assets/Resume_Pujan.pdf" download>Resume ↓</a>
+</div>
+
 <!-- HUD overlay (drone telemetry) -->
 <div class="hud" id="hud">
     <div class="hud-corner hud-tl">
@@ -69,26 +76,85 @@
         <div class="poi-content">
             <p class="eyebrow">POI 01 // CABIN</p>
             <h2>Work</h2>
-            <p>8+ years shipping enterprise AI-driven systems. Currently at Oracle on the OCI Integration / Process Automation platform.</p>
+            <p>8+ years shipping enterprise AI-driven systems. Currently at Oracle on the OCI Integration / Process Automation platform. <span class="hint">Tap any role to expand.</span></p>
+
             <div class="entry">
-                <h3>Member of Technical Staff · Full Stack</h3>
-                <div class="entry-meta">Oracle America · Aug 2021 – Present</div>
+                <button class="entry-toggle" type="button" aria-expanded="false">
+                    <h3>Member of Technical Staff · Full Stack</h3>
+                    <div class="entry-meta">Oracle America · Aug 2021 – Present <span class="chevron">›</span></div>
+                </button>
+                <div class="entry-detail">
+                    <h4>Product</h4>
+                    <ul>
+                        <li>Architected and scaled core features for two OCI PaaS products: Oracle Integration Cloud (OIC) and Process Automation (OPA).</li>
+                        <li>Engineered a Human-in-the-Loop use case letting AI agents pause and trigger approval workflows for safe edge-case resolution.</li>
+                        <li>Partnered with Data Science to fine-tune AI models, optimizing generational accuracy across core features.</li>
+                        <li>Built an event-driven abstraction layer that turned a monolithic drag-and-drop Process Builder into a reusable micro-frontend, adopted by 2 other products.</li>
+                        <li>Developed GraphQL queries and REST (OpenAPI) to power complex front-end workflows.</li>
+                    </ul>
+                    <h4>Infrastructure</h4>
+                    <ul>
+                        <li>Led migration of testing infrastructure to Playwright, driving adoption and eliminating frequent release regressions.</li>
+                        <li>Engineered distributed state management for the host shell + 14 micro-frontend plugins via Redux reducer injection.</li>
+                        <li>Headed an error-management initiative letting support resolve on-call issues independently, reducing engineering escalations.</li>
+                        <li>Collaborated on global release process across 18 OCI regions using Shepard.</li>
+                    </ul>
+                    <p class="stack">JavaScript / TypeScript · React · Java · Kotlin · Spring Boot · Kafka · Kubernetes · GraphQL</p>
+                </div>
             </div>
+
             <div class="entry">
-                <h3>Front End Engineer</h3>
-                <div class="entry-meta">Veritas Technologies · Dec 2017 – Aug 2021</div>
+                <button class="entry-toggle" type="button" aria-expanded="false">
+                    <h3>Front End Engineer</h3>
+                    <div class="entry-meta">Veritas Technologies · Dec 2017 – Aug 2021 <span class="chevron">›</span></div>
+                </button>
+                <div class="entry-detail">
+                    <ul>
+                        <li>Implemented a modern UI for NetBackup — backup/restore infra across workloads and databases.</li>
+                        <li>Led the Jobs Hierarchy module (most-visited page), rebuilt from scratch with new functionality.</li>
+                        <li>Contributed reusable UI components to Veritas Design Language (VDL) for Angular.</li>
+                    </ul>
+                    <p class="stack">Angular · TypeScript · Java · RxJS · Sass · Cypress</p>
+                </div>
             </div>
+
             <div class="entry">
-                <h3>Front End Engineering Intern</h3>
-                <div class="entry-meta">Shutterfly · Jun 2017 – Aug 2017</div>
+                <button class="entry-toggle" type="button" aria-expanded="false">
+                    <h3>Front End Engineering Intern</h3>
+                    <div class="entry-meta">Shutterfly · Jun 2017 – Aug 2017 <span class="chevron">›</span></div>
+                </button>
+                <div class="entry-detail">
+                    <ul>
+                        <li>Worked with the core team to optimize and ship new features on Shutterfly's home page.</li>
+                        <li>Improved home-page performance via a series of load optimizations.</li>
+                    </ul>
+                </div>
             </div>
+
             <div class="entry">
-                <h3>Front End Engineering Intern</h3>
-                <div class="entry-meta">Digitalmain · Apr 2017 – May 2017</div>
+                <button class="entry-toggle" type="button" aria-expanded="false">
+                    <h3>Front End Engineering Intern</h3>
+                    <div class="entry-meta">Digitalmain · Apr 2017 – May 2017 <span class="chevron">›</span></div>
+                </button>
+                <div class="entry-detail">
+                    <ul>
+                        <li>Headed front-end development of a web forum with AI components inside a WebApp.</li>
+                        <li>Implemented push notifications via event listeners and service workers.</li>
+                    </ul>
+                </div>
             </div>
+
             <div class="entry">
-                <h3>Web Developer</h3>
-                <div class="entry-meta">Experian · Nov 2014 – May 2015</div>
+                <button class="entry-toggle" type="button" aria-expanded="false">
+                    <h3>Web Developer</h3>
+                    <div class="entry-meta">Experian · Nov 2014 – May 2015 <span class="chevron">›</span></div>
+                </button>
+                <div class="entry-detail">
+                    <ul>
+                        <li>Built a web-emailer sending personalized e-bills, scaling to 100,000 users at a time.</li>
+                        <li>Designed and developed pixel-perfect UI from mockups per stakeholder requirements.</li>
+                    </ul>
+                </div>
             </div>
         </div>
     </section>
@@ -97,7 +163,16 @@
         <div class="poi-content">
             <p class="eyebrow">POI 02 // VIEWPOINT</p>
             <h2>Photography</h2>
-            <p>National parks, mountain trails, long lenses. Mostly landscapes, occasionally street.</p>
+            <p>National parks, mountain trails, long lenses. Mostly landscapes, occasionally street. <span class="hint">Click any photo to enlarge.</span></p>
+            <div class="photo-grid">
+                <img src="../../assets/photos_1.jpeg" alt="Photograph 1" loading="lazy">
+                <img src="../../assets/photos_2.jpeg" alt="Photograph 2" loading="lazy">
+                <img src="../../assets/photos_3.jpeg" alt="Photograph 3" loading="lazy">
+                <img src="../../assets/photos_4.jpeg" alt="Photograph 4" loading="lazy">
+                <img src="../../assets/photos_5.jpeg" alt="Photograph 5" loading="lazy">
+                <img src="../../assets/photos_6.jpeg" alt="Photograph 6" loading="lazy">
+                <img src="../../assets/photos_7.jpeg" alt="Photograph 7" loading="lazy">
+            </div>
         </div>
     </section>
 
@@ -105,7 +180,17 @@
         <div class="poi-content">
             <p class="eyebrow">POI 03 // CAMPFIRE</p>
             <h2>Music</h2>
-            <p>Acoustic guitar. Mostly fingerstyle, occasionally loud.</p>
+            <p>Electric and acoustic guitar. Loud when it counts, fingerstyle when it doesn't.</p>
+            <div class="badge-row">
+                <span class="badge">Electric</span>
+                <span class="badge">Acoustic</span>
+                <span class="badge">Fingerstyle</span>
+            </div>
+            <div class="fav-card">
+                <div class="fav-label">Favorite band</div>
+                <div class="fav-name">Metallica</div>
+                <div class="fav-detail">Currently grinding Master of Puppets &amp; One.</div>
+            </div>
         </div>
     </section>
 
@@ -114,6 +199,23 @@
             <p class="eyebrow">POI 04 // STADIUM</p>
             <h2>Competitive Games</h2>
             <p>Where reflexes meet pattern recognition.</p>
+            <div class="rank-card">
+                <div class="rank-badge">
+                    <span class="rank-tier">GM</span>
+                    <span class="rank-label">Grandmaster</span>
+                </div>
+                <div class="rank-info">
+                    <h3>Overwatch · Moira</h3>
+                    <div class="entry-meta">Support main · Top 1% globally</div>
+                </div>
+            </div>
+            <p class="games-also">Also putting time into:</p>
+            <div class="badge-row">
+                <span class="badge">Valorant</span>
+                <span class="badge">CS2</span>
+                <span class="badge">Apex</span>
+                <span class="badge">Marvel Rivals</span>
+            </div>
         </div>
     </section>
 
@@ -138,14 +240,29 @@
             <p class="eyebrow">POI 06 // LANDING PAD</p>
             <h2>Contact</h2>
             <p>Mission complete. Touchdown in 3, 2, 1…</p>
-            <p>
-                <a href="mailto:pujanpkh@gmail.com">pujanpkh@gmail.com</a><br>
-                <a href="https://linkedin.com/in/pujanparikh" target="_blank">linkedin.com/in/pujanparikh</a>
-            </p>
+            <div class="contact-card">
+                <a class="contact-row" href="mailto:pujanpkh@gmail.com">
+                    <span class="contact-icon">@</span>
+                    <span>pujanpkh@gmail.com</span>
+                </a>
+                <a class="contact-row" href="https://linkedin.com/in/pujanparikh" target="_blank" rel="noopener">
+                    <span class="contact-icon">in</span>
+                    <span>linkedin.com/in/pujanparikh</span>
+                </a>
+                <a class="contact-resume" href="../../assets/Resume_Pujan.pdf" download>
+                    Download Resume ↓
+                </a>
+            </div>
         </div>
     </section>
 
 </main>
+
+<!-- Lightbox for photo enlargement -->
+<div class="lightbox" id="lightbox" hidden>
+    <button class="lightbox-close" type="button" aria-label="Close">×</button>
+    <img id="lightbox-img" alt="" />
+</div>
 
 <script type="module" src="js/main.js"></script>
 

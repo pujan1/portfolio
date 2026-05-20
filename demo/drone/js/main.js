@@ -204,6 +204,56 @@ const WATER_SHADER = new THREE.ShaderMaterial({
     `,
 });
 
+const grassBreezeMaterials = [];
+const grassBreezeCache = new Map();
+
+function grassBreezeMaterial(sourceMaterial) {
+    const sourceColor = sourceMaterial?.color || new THREE.Color(0x2f7a34);
+    const key = sourceColor.getHexString();
+    if (grassBreezeCache.has(key)) return grassBreezeCache.get(key);
+
+    const material = new THREE.ShaderMaterial({
+        uniforms: {
+            uTime:  { value: 0 },
+            uColor: { value: sourceColor.clone() },
+        },
+        vertexShader: /* glsl */`
+            uniform float uTime;
+            varying vec3 vNormal;
+            varying float vBlade;
+            void main() {
+                vec3 pos = position;
+                float blade = clamp(uv.x, 0.0, 1.0);
+                float phase = uv.y * 6.28318530718;
+                float wave = sin(uTime * 1.55 + phase + position.x * 0.17 + position.z * 0.11);
+                float cross = cos(uTime * 1.12 + phase * 0.7 + position.z * 0.13);
+                pos.x += wave * 0.075 * blade;
+                pos.z += cross * 0.035 * blade;
+                vBlade = blade;
+                vNormal = normalize(normalMatrix * normal);
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+            }
+        `,
+        fragmentShader: /* glsl */`
+            uniform vec3 uColor;
+            varying vec3 vNormal;
+            varying float vBlade;
+            void main() {
+                float light = 0.62 + 0.38 * max(0.0, vNormal.y);
+                vec3 tip = uColor * 1.18;
+                vec3 base = uColor * 0.72;
+                vec3 col = mix(base, tip, vBlade);
+                gl_FragColor = vec4(col * light, 1.0);
+            }
+        `,
+        side: THREE.DoubleSide,
+    });
+
+    grassBreezeMaterials.push(material);
+    grassBreezeCache.set(key, material);
+    return material;
+}
+
 // Identify water by base color (gltf-transform consolidates names but keeps colors)
 function isWaterColor(mat) {
     if (!mat?.color) return false;
@@ -212,6 +262,10 @@ function isWaterColor(mat) {
     // After gamma conversion these end up roughly in [0.05..0.5] / [0.3..0.7] / [0.5..0.75].
     // Simplest: "is the blue channel notably larger than green and red?"
     return c.b > 0.45 && c.b > c.r + 0.15 && c.g > c.r + 0.1;
+}
+
+function isGrassMaterial(mat) {
+    return mat?.name?.startsWith('Grass_Prototype_');
 }
 
 landscapeLoader.load('assets/compressed/landscape.glb', (gltf) => {
@@ -238,6 +292,29 @@ landscapeLoader.load('assets/compressed/landscape.glb', (gltf) => {
     // Vegetation is now authored in Blender — scatterGrass() removed.
     // The function is kept below for reference but no longer called.
 }, undefined, () => markLoaded('Landscape unavailable'));
+
+// Optional hand-authored vegetation overlay. Keep this separate from the
+// generated landscape so rebuild.sh can regenerate terrain without deleting it.
+const vegetationLoader = new GLTFLoader();
+vegetationLoader.setMeshoptDecoder(MeshoptDecoder);
+vegetationLoader.load('assets/compressed/vegetation.glb', (gltf) => {
+    const vegetation = gltf.scene;
+    vegetation.position.set(0, 0, 0);
+    vegetation.traverse((node) => {
+        if (node.isMesh) {
+            node.castShadow = true;
+            node.receiveShadow = true;
+            if (isGrassMaterial(node.material) && node.geometry?.attributes?.uv) {
+                node.material = grassBreezeMaterial(node.material);
+                node.castShadow = false;
+            }
+        }
+    });
+    scene.add(vegetation);
+    console.log('[vegetation] loaded');
+}, undefined, () => {
+    console.info('[vegetation] optional vegetation.glb not found');
+});
 
 /* ─────────────────────────────────────────────
    DENSE GRASS via InstancedMesh
@@ -682,6 +759,9 @@ function animate() {
 
     // Tick water shader
     WATER_SHADER.uniforms.uTime.value += dt;
+    for (const material of grassBreezeMaterials) {
+        material.uniforms.uTime.value += dt;
+    }
 
     /* ── DRONE — position on curve + look ahead ── */
     flightCurve.getPointAt(p, _tmpPos);
@@ -702,8 +782,8 @@ function animate() {
     // Bank: roll into turns based on horizontal tangent change
     drone.rotation.z = -_tmpTangent.x * 0.3;
 
-    // DEBUG: ?overview in URL → high orbit cam to inspect the landscape
-    if (window.location.search.includes('overview')) {
+    // DEBUG: ?debugOverview=1 in URL → high orbit cam to inspect the landscape
+    if (new URLSearchParams(window.location.search).get('debugOverview') === '1') {
         const ang = t * 0.12;
         camera.position.set(Math.cos(ang) * 50, 35, Math.sin(ang) * 50 - 50);
         camera.lookAt(0, 0, -55);
@@ -746,5 +826,41 @@ function animate() {
     renderer.render(scene, camera);
 }
 animate();
+
+/* ─────────────────────────────────────────────
+   Click-to-expand work entries
+   ───────────────────────────────────────────── */
+document.querySelectorAll('.entry-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const entry = btn.closest('.entry');
+        if (!entry) return;
+        const expanded = entry.classList.toggle('expanded');
+        btn.setAttribute('aria-expanded', String(expanded));
+    });
+});
+
+/* ─────────────────────────────────────────────
+   Photo lightbox
+   ───────────────────────────────────────────── */
+const lightbox = document.getElementById('lightbox');
+const lightboxImg = document.getElementById('lightbox-img');
+function openLightbox(src, alt) {
+    if (!lightbox || !lightboxImg) return;
+    lightboxImg.src = src;
+    lightboxImg.alt = alt || '';
+    lightbox.hidden = false;
+}
+function closeLightbox() {
+    if (!lightbox) return;
+    lightbox.hidden = true;
+    lightboxImg.src = '';
+}
+document.querySelectorAll('.photo-grid img').forEach(img => {
+    img.addEventListener('click', () => openLightbox(img.src, img.alt));
+});
+lightbox?.addEventListener('click', closeLightbox);
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && lightbox && !lightbox.hidden) closeLightbox();
+});
 
 console.log('[drone-demo] scene initialized — placeholder drone hovering');

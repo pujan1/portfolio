@@ -229,28 +229,105 @@ def path_dist(x, z):
 
 # ─────────────────────────────────────────────
 # RIVER — defined here so the terrain can carve a channel for it before
-# the river meshes are placed below
+# the river meshes are placed below.
 # ─────────────────────────────────────────────
-RIVER_POINTS = [
-    (-24, -97),    # waterfall pool
-    (-22, -88),
-    (-15, -75),
-    (-8,  -62),
-    (-2,  -52),    # crosses road at bridge
-    ( 6,  -45),
-    ( 14, -38),
-    ( 22, -32),
-    ( 32, -28),
-    ( 50, -24),
+RIVER_CONTROL = [
+    (-28, -118),   # waterfall pool
+    (-31, -112),
+    (-25, -106),
+    (-28, -100),
+    (-22,  -91),
+    (-18,  -82),
+    (-12,  -73),
+    (-10,  -64),
+    ( -3,  -55),
+    ( -2,  -52),   # crosses road at bridge
+    (  5,  -47),
+    (  8,  -42),
+    ( 15,  -39),
+    ( 21,  -34),
+    ( 31,  -31),
+    ( 40,  -27),
+    ( 50,  -24),
 ]
-RIVER_CHANNEL_RADIUS = 3.5    # within this distance, terrain dips to channel floor
-RIVER_BANK_FALLOFF   = 6.5    # transition out of the channel — wider for natural slope
-RIVER_DEPTH          = 2.2    # deeper channel — river clearly sits below ground level
-WATER_SURFACE_Y      = -0.9   # water surface clearly below ground level
-RIVER_THICKNESS      = 0.35   # thin slab — just the visible surface
+RIVER_POINTS_RAW = catmullrom(RIVER_CONTROL, samples_per_segment=4, tension=0.42)
+RIVER_POINTS = []
+for i, (x, z) in enumerate(RIVER_POINTS_RAW):
+    if i == 0 or i == len(RIVER_POINTS_RAW) - 1:
+        RIVER_POINTS.append((x, z))
+        continue
+    dx = RIVER_POINTS_RAW[i + 1][0] - RIVER_POINTS_RAW[i - 1][0]
+    dz = RIVER_POINTS_RAW[i + 1][1] - RIVER_POINTS_RAW[i - 1][1]
+    dlen = math.hypot(dx, dz) or 1
+    px, pz = -dz / dlen, dx / dlen
+    bend = math.sin(i * 0.73) * 0.42 + math.cos(i * 1.11) * 0.24
+    RIVER_POINTS.append((x + px * bend, z + pz * bend))
+
+RIVER_WIDTH_START    = 2.5
+RIVER_WIDTH_END      = 4.4
+RIVER_CHANNEL_MARGIN = 1.25   # extra submerged shelf beyond the visible water
+RIVER_BANK_FALLOFF   = 8.0    # transition out of the channel — wider for natural slope
+RIVER_DEPTH          = 3.45   # deeper channel — river clearly sits below ground level
+RIVERBED_CLEARANCE   = 0.015
+RIVER_WATER_CLEARANCE = 0.24
+
+RIVER_SEG_LENGTHS = []
+_river_total = 0.0
+for i in range(len(RIVER_POINTS) - 1):
+    x1, z1 = RIVER_POINTS[i]
+    x2, z2 = RIVER_POINTS[i + 1]
+    seg_len = math.hypot(x2 - x1, z2 - z1)
+    RIVER_SEG_LENGTHS.append(seg_len)
+    _river_total += seg_len
+
+def river_width_at(t):
+    base = RIVER_WIDTH_START * (1 - t) + RIVER_WIDTH_END * t
+    wobble = math.sin(t * 29.0) * 0.28 + math.cos(t * 47.0) * 0.18
+    return max(2.2, base + wobble)
+
+def _polyline_nearest(x, z, points, lengths=None, total_len=None):
+    """Nearest point plus normalized progress along a polyline."""
+    best = {
+        "dist": 1e9,
+        "t": 0.0,
+        "point": points[0],
+        "segment": 0,
+        "local_t": 0.0,
+    }
+    traveled = 0.0
+    total_len = total_len or 1.0
+    for i in range(len(points) - 1):
+        x1, z1 = points[i]
+        x2, z2 = points[i + 1]
+        dx, dz = x2 - x1, z2 - z1
+        seg_len_sq = dx*dx + dz*dz
+        if seg_len_sq < 1e-9:
+            seg_len = 0.0
+            d = math.hypot(x - x1, z - z1)
+            local_t = 0.0
+            px, pz = x1, z1
+        else:
+            seg_len = lengths[i] if lengths else math.sqrt(seg_len_sq)
+            local_t = ((x - x1) * dx + (z - z1) * dz) / seg_len_sq
+            local_t = max(0, min(1, local_t))
+            px, pz = x1 + local_t * dx, z1 + local_t * dz
+            d = math.hypot(x - px, z - pz)
+        if d < best["dist"]:
+            best = {
+                "dist": d,
+                "t": (traveled + seg_len * local_t) / total_len,
+                "point": (px, pz),
+                "segment": i,
+                "local_t": local_t,
+            }
+        traveled += seg_len
+    return best
+
+def river_nearest(x, z):
+    return _polyline_nearest(x, z, RIVER_POINTS, RIVER_SEG_LENGTHS, _river_total)
 
 def river_dist(x, z):
-    return _polyline_dist(x, z, RIVER_POINTS)
+    return river_nearest(x, z)["dist"]
 
 def noise2d(x, z, scale=0.18, octaves=3):
     v = 0; amp = 1.0; freq = scale
@@ -287,15 +364,13 @@ def lerp_rgb(a, b, t):
     return (a[0]*(1-t)+b[0]*t, a[1]*(1-t)+b[1]*t, a[2]*(1-t)+b[2]*t)
 
 # Plane center in Blender-local Y after our placement (B(0, 0, GROUND_CENTER_Z))
-PLANE_CENTER_BY = -GROUND_CENTER_Z   # = 40 with center=-40
+PLANE_CENTER_BY = -GROUND_CENTER_Z
 
-for v in mesh.vertices:
-    bx, by, _ = v.co.x, v.co.y, v.co.z
-    three_x = bx
-    three_z = -by
+def base_terrain_height_at(three_x, three_z):
+    by = -three_z
 
     # Edge mountain rise — bowl shape with the BACK direction much taller
-    edge_x = max(0, abs(bx) - EDGE_MOUNTAIN_START_X) / (GROUND_SIZE_X / 2 - EDGE_MOUNTAIN_START_X)
+    edge_x = max(0, abs(three_x) - EDGE_MOUNTAIN_START_X) / (GROUND_SIZE_X / 2 - EDGE_MOUNTAIN_START_X)
     # Signed Z offset: positive Blender-Y = back direction (negative three.js z)
     z_signed = by - PLANE_CENTER_BY
     edge_z_back  = max(0,  z_signed - EDGE_MOUNTAIN_START_Z) / (GROUND_SIZE_Z / 2 - EDGE_MOUNTAIN_START_Z)
@@ -308,11 +383,12 @@ for v in mesh.vertices:
 
     # Gentle rolling hills near center
     hills_h = noise2d(three_x, three_z, scale=0.13) * 1.1
+    return hills_h + edge_rise
 
-    # Base terrain height (before path/river carving)
-    base_h = hills_h + edge_rise
+def terrain_height_at(three_x, three_z):
+    base_h = base_terrain_height_at(three_x, three_z)
 
-    # ── ROAD CARVE — flat corridor at ground level ──
+    # Road carve — flat corridor at ground level
     dist_to_path = path_dist(three_x, three_z)
     if dist_to_path < PATH_CARVE_RADIUS:
         terrain_h = 0.0
@@ -322,18 +398,31 @@ for v in mesh.vertices:
     else:
         terrain_h = base_h
 
-    # ── RIVER CARVE — terrain dips into a channel along the river ──
-    dist_to_river = river_dist(three_x, three_z)
-    if dist_to_river < RIVER_CHANNEL_RADIUS:
-        # Inside the channel — floor at -RIVER_DEPTH
-        terrain_h = -RIVER_DEPTH
-    elif dist_to_river < RIVER_CHANNEL_RADIUS + RIVER_BANK_FALLOFF:
-        # Bank — blend up from channel floor to surrounding terrain
-        t = (dist_to_river - RIVER_CHANNEL_RADIUS) / RIVER_BANK_FALLOFF
-        # smoothstep-like blend
+    # River carve — a deep, uneven channel around the variable-width river.
+    nearest = river_nearest(three_x, three_z)
+    water_half_width = river_width_at(nearest["t"]) / 2
+    edge_noise = noise2d(three_x + 19.0, three_z - 37.0, scale=0.48, octaves=2) * 0.55
+    edge_noise += math.sin(nearest["t"] * 83.0) * 0.18
+    channel_radius = max(1.9, water_half_width + RIVER_CHANNEL_MARGIN + edge_noise)
+    bank_falloff = max(5.5, RIVER_BANK_FALLOFF + noise2d(three_x - 11.0, three_z + 23.0, scale=0.22, octaves=1) * 1.1)
+
+    dist_to_river = nearest["dist"]
+    if dist_to_river < channel_radius:
+        center_t = 1 - dist_to_river / max(0.1, channel_radius)
+        terrain_h = -RIVER_DEPTH - center_t * 0.28
+    elif dist_to_river < channel_radius + bank_falloff:
+        t = (dist_to_river - channel_radius) / bank_falloff
         s = t * t * (3 - 2 * t)
         terrain_h = (-RIVER_DEPTH) * (1 - s) + terrain_h * s
 
+    return terrain_h
+
+for v in mesh.vertices:
+    bx, by, _ = v.co.x, v.co.y, v.co.z
+    three_x = bx
+    three_z = -by
+
+    terrain_h = terrain_height_at(three_x, three_z)
     v.co.z = terrain_h
     h = v.co.z
 
@@ -380,70 +469,124 @@ for poly in ground.data.polygons:
 # (SNOW_PEAKS removed — mountains are now part of the terrain itself,
 # rising from the bowl edges with snow applied via vertex color)
 
+def add_mesh_object(name, verts, faces, mat_name):
+    mesh_data = bpy.data.meshes.new(name + "_Mesh")
+    mesh_data.from_pydata(verts, [], faces)
+    mesh_data.update()
+    obj = bpy.data.objects.new(name, mesh_data)
+    bpy.context.collection.objects.link(obj)
+    assign_flat(obj, mat_name)
+    return obj
+
+def add_irregular_strip(name, points, y, width_extra, mat_name):
+    verts = []
+    faces = []
+    distance_so_far = 0.0
+    distances = [0.0]
+    for i in range(len(points) - 1):
+        distance_so_far += math.hypot(points[i + 1][0] - points[i][0],
+                                      points[i + 1][1] - points[i][1])
+        distances.append(distance_so_far)
+    total = max(0.1, distance_so_far)
+
+    for i, (x, z) in enumerate(points):
+        i0 = max(0, i - 1)
+        i1 = min(len(points) - 1, i + 1)
+        dx = points[i1][0] - points[i0][0]
+        dz = points[i1][1] - points[i0][1]
+        dlen = math.hypot(dx, dz) or 1
+        px, pz = -dz / dlen, dx / dlen
+        t = distances[i] / total
+        half = river_width_at(t) / 2 + width_extra
+        left_jag = math.sin(i * 1.71) * 0.30 + noise2d(x + 13.0, z - 5.0, scale=0.7, octaves=2) * 0.22
+        right_jag = math.cos(i * 1.43) * 0.30 + noise2d(x - 17.0, z + 9.0, scale=0.7, octaves=2) * 0.22
+        lx = x + px * (half + left_jag)
+        lz = z + pz * (half + left_jag)
+        rx = x - px * (half + right_jag)
+        rz = z - pz * (half + right_jag)
+        ly = y(lx, lz, t, -1) if callable(y) else y
+        ry = y(rx, rz, t, 1) if callable(y) else y
+        verts.append(B(lx, ly, lz))
+        verts.append(B(rx, ry, rz))
+
+    for i in range(len(points) - 1):
+        faces.append((2 * i, 2 * (i + 1), 2 * (i + 1) + 1, 2 * i + 1))
+
+    return add_mesh_object(name, verts, faces, mat_name)
+
+def add_cascade_segment(name, p1, p2, width, mat_name):
+    x1, y1, z1 = p1
+    x2, y2, z2 = p2
+    dx, dz = x2 - x1, z2 - z1
+    dlen = math.hypot(dx, dz) or 1
+    px, pz = -dz / dlen, dx / dlen
+    w1 = width * (0.82 + 0.18 * math.sin(x1 * 0.7 + z1 * 0.21))
+    w2 = width * (0.90 + 0.16 * math.cos(x2 * 0.6 - z2 * 0.25))
+    verts = [
+        B(x1 + px * w1 / 2, y1, z1 + pz * w1 / 2),
+        B(x2 + px * w2 / 2, y2, z2 + pz * w2 / 2),
+        B(x2 - px * w2 / 2, y2, z2 - pz * w2 / 2),
+        B(x1 - px * w1 / 2, y1, z1 - pz * w1 / 2),
+    ]
+    return add_mesh_object(name, verts, [(0, 1, 2, 3)], mat_name)
+
 # ─────────────────────────────────────────────
 # WATERFALL — flows down the terrain's back-edge mountains
 # Naming: anything starting with WATER_ gets animated in three.js
 # ─────────────────────────────────────────────
-WATERFALL_X, WATERFALL_Z = -28, -120  # back-edge mountain face
-WATERFALL_TOP = 55                    # falls from high on the tall back mountain
-WATERFALL_BOTTOM = WATER_SURFACE_Y    # bottom meets the new (deeper) water surface
+WATERFALL_PATH_2D = [
+    (-36, -184),
+    (-33, -171),
+    (-35, -158),
+    (-31, -145),
+    (-32, -134),
+    (-29, -124),
+    (-28, -118),
+]
+WATERFALL_PATH = []
+for i, (x, z) in enumerate(WATERFALL_PATH_2D):
+    if i == len(WATERFALL_PATH_2D) - 1:
+        y = terrain_height_at(x, z) + RIVER_WATER_CLEARANCE
+    else:
+        y = terrain_height_at(x, z) + 0.18
+    WATERFALL_PATH.append((x, y, z))
 
-mid_y = (WATERFALL_TOP + WATERFALL_BOTTOM) / 2
-half_h = (WATERFALL_TOP - WATERFALL_BOTTOM) / 2
-add_cube(loc=B(WATERFALL_X, mid_y, WATERFALL_Z),
-         scale=(1.4, 0.25, half_h),
-         name="WATER_Waterfall_Main", mat_name="water")
-
-# A wider sheen behind it for "spray"
-add_cube(loc=B(WATERFALL_X, mid_y, WATERFALL_Z - 0.3),
-         scale=(2.2, 0.18, half_h),
-         name="Waterfall_Spray", mat_name="foam")
-
-add_ico(loc=B(WATERFALL_X, WATERFALL_TOP - 0.4, WATERFALL_Z - 0.3),
-        radius=2.0, name="Waterfall_Top_Foam", mat_name="foam",
-        subdiv=1, scale=(1.0, 0.5, 0.3))
-add_ico(loc=B(WATERFALL_X, WATERFALL_BOTTOM + 0.4, WATERFALL_Z + 0.8),
-        radius=2.8, name="Waterfall_Pool_Foam", mat_name="foam",
-        subdiv=1, scale=(1.0, 0.6, 0.3))
+for i in range(len(WATERFALL_PATH) - 1):
+    width = 1.6 + math.sin(i * 0.9) * 0.35
+    add_cascade_segment(f"WATER_Cascade_{i}", WATERFALL_PATH[i], WATERFALL_PATH[i + 1],
+                        width, "water")
+    if i % 2 == 0:
+        x, y, z = WATERFALL_PATH[i + 1]
+        add_ico(loc=B(x, y + 0.06, z), radius=0.9,
+                name=f"Waterfall_Ledge_Foam_{i}", mat_name="foam",
+                subdiv=1, scale=(1.2, 0.45, 0.25))
+        add_ico(loc=B(x - 1.2, terrain_height_at(x - 1.2, z) + 0.25, z + 0.4),
+                radius=0.65, name=f"Waterfall_Ledge_Rock_{i}", mat_name="rock",
+                subdiv=1, scale=(1.1, 0.6, 0.8))
 
 # Pool at base of waterfall — sits at the new water surface level
-add_cyl(loc=B(WATERFALL_X, WATER_SURFACE_Y, WATERFALL_Z + 2), radius=4.0, depth=0.3,
+POOL_Y = terrain_height_at(-28, -118) + RIVER_WATER_CLEARANCE
+add_cyl(loc=B(-28, POOL_Y, -118), radius=4.8, depth=0.3,
         name="WATER_Pool", mat_name="water_deep", verts=14)
+add_ico(loc=B(-28, POOL_Y + 0.05, -118), radius=2.6,
+        name="Waterfall_Pool_Foam", mat_name="foam",
+        subdiv=1, scale=(1.2, 0.5, 0.25))
 
 # ─────────────────────────────────────────────
 # RIVER — winds from the pool, crosses the drone path, exits stage right
 # ─────────────────────────────────────────────
-# Generate as a series of overlapping flat boxes following a polyline
-# River meshes — sit IN the carved channel, with visible depth.
-# Channel floor is at y = -RIVER_DEPTH (=-0.8); water surface at y = -0.15 so
-# the water clearly fills the dip without poking above the banks.
-RIVER_WIDTH_START = 2.6
-RIVER_WIDTH_END   = 3.8
-# WATER_SURFACE_Y and RIVER_THICKNESS defined earlier (with RIVER_DEPTH)
-
-for i in range(len(RIVER_POINTS) - 1):
-    x1, z1 = RIVER_POINTS[i]
-    x2, z2 = RIVER_POINTS[i + 1]
-    mx, mz = (x1 + x2) / 2, (z1 + z2) / 2
-    length = math.hypot(x2 - x1, z2 - z1)
-    angle  = math.atan2(-(z2 - z1), x2 - x1)
-    t = i / (len(RIVER_POINTS) - 2)
-    width = RIVER_WIDTH_START * (1 - t) + RIVER_WIDTH_END * t
-    # Water body — TOP face exactly at WATER_SURFACE_Y, extends down into the channel
-    add_cube(loc=B(mx, WATER_SURFACE_Y - RIVER_THICKNESS, mz),
-             scale=(length / 2 + 0.4, width / 2, RIVER_THICKNESS),
-             name=f"WATER_River_{i}", mat_name="water",
-             rot=(0, 0, angle))
-    # Darker riverbed at the channel floor (just visible at edges)
-    add_cube(loc=B(mx, -RIVER_DEPTH + 0.05, mz),
-             scale=(length / 2 + 0.7, (width + 0.7) / 2, 0.06),
-             name=f"Riverbed_{i}", mat_name="dirt_dark",
-             rot=(0, 0, angle))
+# One continuous strip avoids the straight, box-segment look. The banks vary per
+# sample, while the terrain carve above gives it a sunken channel.
+add_irregular_strip("Riverbed_Main", RIVER_POINTS,
+                    lambda x, z, _t, _side: terrain_height_at(x, z) + RIVERBED_CLEARANCE,
+                    1.0, "dirt_dark")
+add_irregular_strip("WATER_River_Main", RIVER_POINTS,
+                    lambda x, z, _t, _side: terrain_height_at(x, z) + RIVER_WATER_CLEARANCE,
+                    0.0, "water")
 
 # Foam highlights along the river — sit just above the water surface
-for i, (x, z) in enumerate(RIVER_POINTS[::2]):
-    if i == 0: continue
-    add_ico(loc=B(x, WATER_SURFACE_Y + 0.05, z), radius=0.4,
+for i, (x, z) in enumerate(RIVER_POINTS[5::8]):
+    add_ico(loc=B(x, terrain_height_at(x, z) + RIVER_WATER_CLEARANCE + 0.06, z), radius=0.4,
             name=f"River_Foam_{i}", mat_name="foam",
             subdiv=1, scale=(1.0, 0.5, 0.2))
 

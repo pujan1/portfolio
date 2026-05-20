@@ -167,7 +167,8 @@ landscapeLoader.setMeshoptDecoder(MeshoptDecoder);
 // Track water meshes for animation
 const waterMeshes = [];
 
-// Custom water shader — gentle wave displacement + scrolling shimmer
+// Custom water shader — scrolling shimmer. Keep vertices pinned so authored
+// river/waterfall meshes stay seated in the carved terrain.
 const WATER_SHADER = new THREE.ShaderMaterial({
     uniforms: {
         uTime:  { value: 0 },
@@ -180,8 +181,6 @@ const WATER_SHADER = new THREE.ShaderMaterial({
         varying vec3 vNormal;
         void main() {
             vec3 pos = position;
-            pos.y += sin(position.x * 0.6 + uTime * 1.7) * 0.05;
-            pos.y += cos(position.z * 0.5 + uTime * 1.3) * 0.04;
             vPos    = pos;
             vNormal = normalize(normalMatrix * normal);
             gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);

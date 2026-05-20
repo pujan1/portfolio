@@ -9,6 +9,7 @@ import { GLTFLoader }     from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
 const canvas = document.getElementById('scene-canvas');
+const demoAssetUrl = (path) => new URL(`../assets/${path}`, import.meta.url).href;
 
 /* ─────────────────────────────────────────────
    LOADING SCREEN — tracks asset loads, fades out when complete.
@@ -268,7 +269,7 @@ function isGrassMaterial(mat) {
     return mat?.name?.startsWith('Grass_Prototype_');
 }
 
-landscapeLoader.load('assets/compressed/landscape.glb', (gltf) => {
+landscapeLoader.load(demoAssetUrl('compressed/landscape.glb'), (gltf) => {
     const land = gltf.scene;
     land.position.set(0, 0, 0);
     land.traverse((node) => {
@@ -297,7 +298,7 @@ landscapeLoader.load('assets/compressed/landscape.glb', (gltf) => {
 // generated landscape so rebuild.sh can regenerate terrain without deleting it.
 const vegetationLoader = new GLTFLoader();
 vegetationLoader.setMeshoptDecoder(MeshoptDecoder);
-vegetationLoader.load('assets/compressed/vegetation.glb', (gltf) => {
+vegetationLoader.load(demoAssetUrl('compressed/vegetation.glb'), (gltf) => {
     const vegetation = gltf.scene;
     vegetation.position.set(0, 0, 0);
     vegetation.traverse((node) => {
@@ -527,8 +528,8 @@ const loader = new GLTFLoader();
 loader.setMeshoptDecoder(MeshoptDecoder);
 
 // Prefer the compressed build (135KB). Fall back to incoming/ if missing.
-const DRONE_URL          = 'assets/compressed/drone.glb';
-const DRONE_URL_FALLBACK = 'assets/incoming/drone.glb';
+const DRONE_URL          = demoAssetUrl('compressed/drone.glb');
+const DRONE_URL_FALLBACK = demoAssetUrl('incoming/drone.glb');
 
 // Tune these once we see the model — Hunyuan3D outputs at arbitrary scale.
 const DRONE_SCALE  = 1.0;   // multiplier applied after loading
@@ -620,7 +621,7 @@ loader.load(
    ───────────────────────────────────────────── */
 function loadPoiAsset(poi) {
     if (!poi.asset) return;
-    const url = `assets/compressed/${poi.asset}`;
+    const url = demoAssetUrl(`compressed/${poi.asset}`);
     const label = poi.asset.replace('.glb', '').replace(/^./, c => c.toUpperCase());
 
     loader.load(url, (gltf) => {
